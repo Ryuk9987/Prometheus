@@ -9,20 +9,30 @@ using System.Collections.Generic;
 public partial class InterpretationLog : CanvasLayer
 {
     private VBoxContainer _log;
+    private Panel         _panel;
+    private bool          _visible = true;
     private const int     MaxEntries = 8;
 
     private readonly Queue<RichTextLabel> _entries = new();
 
+    public override void _Input(InputEvent @event)
+    {
+        if (@event is InputEventKey k && k.Pressed && !k.Echo && k.Keycode == Key.I)
+        {
+            _visible = !_visible;
+            if (_panel != null) _panel.Visible = _visible;
+        }
+    }
+
     public override void _Ready()
     {
-        var panel = new Panel();
-        panel.SetAnchorsPreset(Control.LayoutPreset.BottomRight);
-        panel.Position = new Vector2(-420, -260);
-        panel.Size     = new Vector2(400, 240);
+        _panel.SetAnchorsPreset(Control.LayoutPreset.BottomRight);
+        _panel.Position = new Vector2(-420, -260);
+        _panel.Size     = new Vector2(400, 240);
 
         var style = new StyleBoxFlat();
         style.BgColor = new Color(0.03f, 0.05f, 0.1f, 0.85f);
-        panel.AddThemeStyleboxOverride("panel", style);
+        _panel.AddThemeStyleboxOverride("panel", style);
 
         var margin = new MarginContainer();
         margin.SetAnchorsPreset(Control.LayoutPreset.FullRect);
@@ -45,8 +55,17 @@ public partial class InterpretationLog : CanvasLayer
         vbox.AddChild(_log);
 
         margin.AddChild(vbox);
-        panel.AddChild(margin);
-        AddChild(panel);
+        _panel.AddChild(margin);
+        AddChild(_panel);
+
+        // Toggle hint
+        var hint = new Label();
+        hint.Text = "[I] ein/ausblenden";
+        hint.AddThemeFontSizeOverride("font_size", 10);
+        hint.AddThemeColorOverride("font_color", new Color(0.35f, 0.35f, 0.5f));
+        hint.Position = new Vector2(_panel.Position.X, _panel.Position.Y - 16);
+        // note: positioned relative to CanvasLayer, approximate
+        _panel.AddChild(hint);
 
         // Connect to OracleTablet
         CallDeferred(MethodName.ConnectSignals);

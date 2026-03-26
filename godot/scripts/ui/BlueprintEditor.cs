@@ -103,7 +103,7 @@ public partial class BlueprintEditor : CanvasLayer
 
         // Right panel
         var rightPanel = new Panel();
-        rightPanel.CustomMinimumSize = new Vector2(220, 0);
+        rightPanel.CustomMinimumSize = new Vector2(180, 0);
         rightPanel.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
         var rStyle = new StyleBoxFlat(); rStyle.BgColor = new Color(0.07f,0.09f,0.15f,1f);
         rightPanel.AddThemeStyleboxOverride("panel", rStyle);

@@ -15,7 +15,6 @@ public partial class NpcEntity : Node3D
     public NeedsComponent       Needs       { get; private set; }
     public KnowledgeComponent   Knowledge   { get; private set; }
 
-    private NavigationAgent3D  _navAgent;
     private Label3D            _nameLabel;
     private RandomNumberGenerator _rng = new();
 
@@ -29,7 +28,6 @@ public partial class NpcEntity : Node3D
         Personality = GetNode<PersonalityComponent>("PersonalityComponent");
         Needs       = GetNode<NeedsComponent>("NeedsComponent");
         Knowledge   = GetNode<KnowledgeComponent>("KnowledgeComponent");
-        _navAgent   = GetNode<NavigationAgent3D>("NavigationAgent3D");
         _nameLabel  = GetNode<Label3D>("Label3D");
 
         _nameLabel.Text = NpcName;
@@ -51,15 +49,15 @@ public partial class NpcEntity : Node3D
 
     public override void _Process(double delta)
     {
-        // Move toward nav target
-        if (!_navAgent.IsNavigationFinished())
+        // Direct movement toward wander target (no navmesh needed for prototype)
+        var dir = _randomTarget - GlobalPosition;
+        dir.Y = 0;
+        if (dir.Length() > 0.6f)
         {
-            var next = _navAgent.GetNextPathPosition();
-            var dir  = (next - GlobalPosition).Normalized();
-            GlobalPosition += dir * MoveSpeed * (float)delta;
+            GlobalPosition += dir.Normalized() * MoveSpeed * (float)delta;
         }
 
-        // Pick new wander target periodically
+        // Pick new wander target periodically (curious NPCs wander more)
         _wanderTimer += delta;
         if (_wanderTimer >= WanderInterval * (1.5f - Personality.Curiosity))
         {

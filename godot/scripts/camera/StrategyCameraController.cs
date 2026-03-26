@@ -17,6 +17,7 @@ public partial class StrategyCameraController : Node3D
     private Camera3D _camera;
     private float    _zoomLevel = 30f;
     private bool     _orbiting  = false;
+    private bool     _panning   = false;
 
     public override void _Ready()
     {
@@ -51,12 +52,23 @@ public partial class StrategyCameraController : Node3D
             else if (mb.ButtonIndex == MouseButton.WheelDown)
                 _zoomLevel = Mathf.Clamp(_zoomLevel + ZoomSpeed, MinZoom, MaxZoom);
             else if (mb.ButtonIndex == MouseButton.Middle)
+                _panning = mb.Pressed;
+            else if (mb.ButtonIndex == MouseButton.Right)
                 _orbiting = mb.Pressed;
         }
 
-        if (@event is InputEventMouseMotion mm && _orbiting)
+        if (@event is InputEventMouseMotion mm)
         {
-            RotateY(Mathf.DegToRad(-mm.Relative.X * OrbitSpeed));
+            if (_orbiting)
+                RotateY(Mathf.DegToRad(-mm.Relative.X * OrbitSpeed));
+
+            if (_panning)
+            {
+                // Pan in local XZ plane
+                var panX = -mm.Relative.X * _zoomLevel * 0.001f * PanSpeed;
+                var panZ = -mm.Relative.Y * _zoomLevel * 0.001f * PanSpeed;
+                Position += Transform.Basis.X * panX + Transform.Basis.Z * panZ;
+            }
         }
     }
 

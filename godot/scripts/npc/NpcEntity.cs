@@ -1,24 +1,22 @@
+#nullable disable
 using Godot;
 
-/// <summary>
-/// Core NPC entity. Each individual is unique — their own knowledge,
-/// personality, needs. They live, learn, teach, and die.
-/// </summary>
 public partial class NpcEntity : Node3D
 {
-    [Export] public string NpcName    { get; set; } = "Unknown";
-    [Export] public int    Age        { get; set; } = 20;
-    [Export] public string TribeId   { get; set; } = "tribe_a";
-    [Export] public float  BeliefScore { get; set; } = 0.0f; // 0=no faith, 1=devout
+    [Export] public string NpcName     { get; set; } = "Unknown";
+    [Export] public int    Age         { get; set; } = 20;
+    [Export] public string TribeId     { get; set; } = "tribe_a";
+    [Export] public float  BeliefScore { get; set; } = 0.0f;
 
     public PersonalityComponent Personality { get; private set; }
     public NeedsComponent       Needs       { get; private set; }
     public KnowledgeComponent   Knowledge   { get; private set; }
 
-    private Label3D            _nameLabel;
+    private Label3D _nameLabel;
     private RandomNumberGenerator _rng = new();
 
-    private double _wanderTimer   = 0;
+    private Vector3 _wanderTarget;
+    private double  _wanderTimer   = 0;
     private const double WanderInterval = 3.5;
     private const float  WanderRadius   = 10f;
     private const float  MoveSpeed      = 2.5f;
@@ -35,7 +33,8 @@ public partial class NpcEntity : Node3D
         _rng.Randomize();
         Personality.Randomize(_rng);
 
-        // Register with GameManager and subscribe to world tick
+        _wanderTarget = GlobalPosition;
+
         if (GameManager.Instance != null)
         {
             GameManager.Instance.RegisterNpc(this);
@@ -49,15 +48,11 @@ public partial class NpcEntity : Node3D
 
     public override void _Process(double delta)
     {
-        // Direct movement toward wander target (no navmesh needed for prototype)
-        var dir = _randomTarget - GlobalPosition;
+        var dir = _wanderTarget - GlobalPosition;
         dir.Y = 0;
         if (dir.Length() > 0.6f)
-        {
             GlobalPosition += dir.Normalized() * MoveSpeed * (float)delta;
-        }
 
-        // Pick new wander target periodically (curious NPCs wander more)
         _wanderTimer += delta;
         if (_wanderTimer >= WanderInterval * (1.5f - Personality.Curiosity))
         {
@@ -69,15 +64,13 @@ public partial class NpcEntity : Node3D
     private void OnWorldTick(double delta)
     {
         Needs.OnWorldTick(delta);
-        Age++; // crude aging (tick = ~1 year in prototype)
     }
 
     private void SetRandomWanderTarget()
     {
-        var offset = new Vector3(
+        _wanderTarget = GlobalPosition + new Vector3(
             _rng.RandfRange(-WanderRadius, WanderRadius), 0,
             _rng.RandfRange(-WanderRadius, WanderRadius));
-        _navAgent.TargetPosition = GlobalPosition + offset;
     }
 
     public override void _ExitTree()

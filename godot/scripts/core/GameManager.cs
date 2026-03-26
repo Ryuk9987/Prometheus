@@ -1,3 +1,4 @@
+#nullable disable
 using Godot;
 using System.Collections.Generic;
 
@@ -33,8 +34,5 @@ public partial class GameManager : Node
         GD.Print($"[GameManager] NPC registered: {npc.NpcName} | Total: {AllNpcs.Count}");
     }
 
-    public void UnregisterNpc(NpcEntity npc)
-    {
-        AllNpcs.Remove(npc);
-    }
+    public void UnregisterNpc(NpcEntity npc) => AllNpcs.Remove(npc);
 }

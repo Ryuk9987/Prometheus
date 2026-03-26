@@ -1,11 +1,6 @@
+#nullable disable
 using Godot;
 
-/// <summary>
-/// Strategic top-down camera for PROMETHEUS.
-/// WASD / Arrow keys = pan
-/// Mouse wheel       = zoom
-/// Middle mouse drag = orbit
-/// </summary>
 public partial class StrategyCameraController : Node3D
 {
     [Export] public float PanSpeed   { get; set; } = 20f;
@@ -34,11 +29,7 @@ public partial class StrategyCameraController : Node3D
         if (Input.IsKeyPressed(Key.D) || Input.IsKeyPressed(Key.Right)) input.X += 1;
 
         if (input != Vector3.Zero)
-        {
-            // Move in local camera direction (respects orbit rotation)
-            var move = input.Normalized() * PanSpeed * (float)delta;
-            Position += Transform.Basis * move;
-        }
+            Position += Transform.Basis * input.Normalized() * PanSpeed * (float)delta;
 
         UpdateCameraPosition();
     }
@@ -64,7 +55,6 @@ public partial class StrategyCameraController : Node3D
 
             if (_panning)
             {
-                // Pan in local XZ plane
                 var panX = -mm.Relative.X * _zoomLevel * 0.001f * PanSpeed;
                 var panZ = -mm.Relative.Y * _zoomLevel * 0.001f * PanSpeed;
                 Position += Transform.Basis.X * panX + Transform.Basis.Z * panZ;
@@ -74,7 +64,6 @@ public partial class StrategyCameraController : Node3D
 
     private void UpdateCameraPosition()
     {
-        // Camera floats above and behind the pivot point
         _camera.Position = new Vector3(0, _zoomLevel, _zoomLevel * 0.7f);
         _camera.LookAt(GlobalPosition, Vector3.Up);
     }

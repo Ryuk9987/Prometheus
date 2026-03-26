@@ -1,12 +1,9 @@
+#nullable disable
 using Godot;
 
-/// <summary>
-/// Spawns initial NPC population at game start.
-/// Place in the World scene; assign NpcScene in the Inspector.
-/// </summary>
 public partial class NpcSpawner : Node3D
 {
-    [Export] public PackedScene NpcScene   { get; set; }
+    [Export] public PackedScene NpcScene    { get; set; }
     [Export] public int         SpawnCount  { get; set; } = 20;
     [Export] public float       SpawnRadius { get; set; } = 15f;
 
@@ -22,7 +19,7 @@ public partial class NpcSpawner : Node3D
     {
         if (NpcScene == null)
         {
-            GD.PrintErr("[NpcSpawner] NpcScene is not assigned! Set it in the Inspector.");
+            GD.PrintErr("[NpcSpawner] NpcScene is not assigned!");
             return;
         }
 
@@ -32,10 +29,10 @@ public partial class NpcSpawner : Node3D
         for (int i = 0; i < SpawnCount; i++)
         {
             var npc = NpcScene.Instantiate<NpcEntity>();
-            npc.NpcName = Names[i % Names.Length];
-            npc.Age     = rng.RandiRange(15, 45);
-            npc.TribeId = "tribe_alpha";
-            npc.BeliefScore = rng.RandfRange(0.0f, 0.3f); // start with low belief
+            npc.NpcName     = Names[i % Names.Length];
+            npc.Age         = rng.RandiRange(15, 45);
+            npc.TribeId     = "tribe_alpha";
+            npc.BeliefScore = rng.RandfRange(0.0f, 0.3f);
 
             float x = rng.RandfRange(-SpawnRadius, SpawnRadius);
             float z = rng.RandfRange(-SpawnRadius, SpawnRadius);
@@ -44,6 +41,6 @@ public partial class NpcSpawner : Node3D
             GetParent().CallDeferred(Node.MethodName.AddChild, npc);
         }
 
-        GD.Print($"[NpcSpawner] Spawned {SpawnCount} NPCs into tribe_alpha.");
+        GD.Print($"[NpcSpawner] Spawning {SpawnCount} NPCs into tribe_alpha.");
     }
 }

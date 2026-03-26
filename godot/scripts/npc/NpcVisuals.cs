@@ -47,7 +47,7 @@ public partial class NpcVisuals : Node3D
     private double _animTime   = 0;
     private Vector3 _lastPos   = Vector3.Zero;
     private float _walkSpeed   = 0f;
-    private const float Scale  = 0.52f; // world scale
+    private const float NpcScale = 0.52f; // world scale
 
     public override void _Ready()
     {
@@ -58,7 +58,7 @@ public partial class NpcVisuals : Node3D
 
         _bodyRoot = new Node3D();
         _bodyRoot.Name = "BodyRoot";
-        _bodyRoot.Scale = Vector3.One * Scale;
+        _bodyRoot.Scale = Vector3.One * NpcScale;
         AddChild(_bodyRoot);
 
         _lastPos = _owner.GlobalPosition;
@@ -181,12 +181,12 @@ public partial class NpcVisuals : Node3D
 
         // ── Arms (pivot at shoulder)
         Pivot2(-0.26f, 1.44f, 0, armMat, MakeCylinder(0.07f, 0.28f),
-               new Vector3(0, -0.14f, 0), rotZ: 20f, out _leftUpperArm);
+               new Vector3(0, -0.14f, 0), out _leftUpperArm, rotZ: 20f);
         Part(MakeCylinder(0.06f, 0.26f), armMat,    new Vector3(-0.30f, 0.97f, 0), rotZ: 10f);
         Part(MakeBox(0.10f, 0.07f, 0.07f), handMat, new Vector3(-0.33f, 0.82f, 0));
 
         Pivot2( 0.26f, 1.44f, 0, armMat, MakeCylinder(0.07f, 0.28f),
-                new Vector3(0, -0.14f, 0), rotZ: -20f, out _rightUpperArm);
+                new Vector3(0, -0.14f, 0), out _rightUpperArm, rotZ: -20f);
         Part(MakeCylinder(0.06f, 0.26f), armMat,    new Vector3( 0.30f, 0.97f, 0), rotZ: -10f);
         Part(MakeBox(0.10f, 0.07f, 0.07f), handMat, new Vector3( 0.33f, 0.82f, 0));
 
@@ -294,7 +294,7 @@ public partial class NpcVisuals : Node3D
     // ── Helpers ───────────────────────────────────────────────────────────
     private MeshInstance3D Pivot2(float px, float py, float pz,
         StandardMaterial3D mat, Mesh mesh, Vector3 meshOffset,
-        float rotX = 0, float rotZ = 0, out Node3D pivot_out)
+        out Node3D pivot_out, float rotX = 0, float rotZ = 0)
     {
         pivot_out = new Node3D();
         pivot_out.Position = new Vector3(px, py, pz);

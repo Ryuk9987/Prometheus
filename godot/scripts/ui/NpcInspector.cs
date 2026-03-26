@@ -419,12 +419,10 @@ public partial class NpcInspector : CanvasLayer
     private void BuildUI()
     {
         _panel = new Panel();
-        _panel.AnchorLeft = 1f;
-        _panel.AnchorRight = 1f;
-        _panel.AnchorTop = 0.5f;
-        _panel.AnchorBottom = 0.5f;
-        _panel.Size = new Vector2(320, 580);
+        _panel.AnchorLeft   = 1f;  _panel.AnchorRight  = 1f;
+        _panel.AnchorTop    = 0.5f; _panel.AnchorBottom = 0.5f;
         _panel.Position = new Vector2(-326, -290);
+        _panel.SetDeferred(Control.PropertyName.Size, new Vector2(320, 580));
 
         var style = new StyleBoxFlat();
         style.BgColor     = new Color(0.07f, 0.08f, 0.13f, 0.97f);
@@ -433,13 +431,9 @@ public partial class NpcInspector : CanvasLayer
         style.BorderWidthLeft   = style.BorderWidthRight = 2;
         _panel.AddThemeStyleboxOverride("panel", style);
 
-        var outerVbox = new VBoxContainer();
-        outerVbox.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        outerVbox.AddThemeConstantOverride("separation", 0);
-
         var margin = new MarginContainer();
-        margin.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
-        margin.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        margin.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        margin.SizeFlagsVertical   = Control.SizeFlags.ExpandFill;
         foreach (var s in new[]{"left","right","top","bottom"})
             margin.AddThemeConstantOverride($"margin_{s}", 8);
 
@@ -484,6 +478,15 @@ public partial class NpcInspector : CanvasLayer
         margin.AddChild(innerVbox);
         _panel.AddChild(margin);
         AddChild(_panel);
+
+        // Anchors for margin must be set after it's in the tree
+        _panel.Ready += () => {
+            margin.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+            margin.SetDeferred(Control.PropertyName.OffsetLeft,  8);
+            margin.SetDeferred(Control.PropertyName.OffsetRight, -8);
+            margin.SetDeferred(Control.PropertyName.OffsetTop,    8);
+            margin.SetDeferred(Control.PropertyName.OffsetBottom,-8);
+        };
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────

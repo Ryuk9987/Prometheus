@@ -4,519 +4,443 @@ using System.Collections.Generic;
 using System.Linq;
 
 /// <summary>
-/// Oracle Editor (O-Taste) — completely redesigned.
-/// 
-/// Left panel:  Follower knowledge pool (collective knowledge of believers)
-/// Center:      Workbench — drag up to 3 knowledge tiles here to combine
-/// Right panel: Result preview — what the Oracle could teach
-/// 
-/// Flow:
-///   1. Player picks 1–3 tiles from follower pool
-///   2. Matching recipes light up in preview
-///   3. Player confirms → Oracle flashes → NPCs learn
+/// Oracle Editor (O-Taste) — simple two-column overlay.
+///
+/// LEFT:  Follower knowledge pool — click to toggle selection (no slot limit)
+/// RIGHT: Matching recipes for current selection — click Reveal to teach NPCs
+///
+/// Design: Full-screen semi-transparent overlay. No drag. No slots.
 /// </summary>
 public partial class OracleEditor : CanvasLayer
 {
-	public static OracleEditor Instance { get; private set; }
+    public static OracleEditor Instance { get; private set; }
 
-	private Panel               _panel;
-	private VBoxContainer       _poolBox;       // left: follower knowledge
-	private HBoxContainer       _workbench;     // center: selected slots
-	private VBoxContainer       _resultBox;     // right: matching recipes
-	private Label               _statusLabel;
+    private Control         _root;
+    private ScrollContainer _poolScroll;
+    private VBoxContainer   _poolBox;
+    private ScrollContainer _resultScroll;
+    private VBoxContainer   _resultBox;
+    private Label           _statusLabel;
+    private Label           _selectionLabel;
 
-	private readonly List<string>        _selected   = new(); // selected knowledge IDs
-	private readonly List<KnowledgeRecipes.Recipe> _matches = new();
+    private readonly HashSet<string> _selected = new();
 
-	public override void _Ready()
-	{
-		Instance = this;
-		BuildUI();
-		_panel.Visible = false;
-	}
+    public override void _Ready()
+    {
+        Instance = this;
+        BuildUI();
+        _root.Visible = false;
+    }
 
-	public override void _Input(InputEvent @event)
-	{
-		if (@event is InputEventKey k && k.Pressed && !k.Echo)
-		{
-			if (k.Keycode == Key.O || k.Keycode == Key.B)
-			{
-				if (_panel.Visible) Close();
-				else Open();
-				GetViewport().SetInputAsHandled();
-			}
-			if (k.Keycode == Key.Escape && _panel.Visible)
-			{
-				Close(); GetViewport().SetInputAsHandled();
-			}
-		}
-	}
+    public override void _Input(InputEvent @event)
+    {
+        if (@event is InputEventKey k && k.Pressed && !k.Echo)
+        {
+            if (k.Keycode == Key.O)
+            {
+                if (_root.Visible) Close(); else Open();
+                GetViewport().SetInputAsHandled();
+            }
+            else if (k.Keycode == Key.Escape && _root.Visible)
+            {
+                Close(); GetViewport().SetInputAsHandled();
+            }
+        }
+    }
 
-	public void Open()
-	{
-		_panel.Visible = true;
-		_selected.Clear();
-		RefreshAll();
-	}
+    public void Open()
+    {
+        _selected.Clear();
+        _root.Visible = true;
+        Refresh();
+    }
 
-	public void Close() => _panel.Visible = false;
+    public void Close() => _root.Visible = false;
 
-	// ── Refresh ───────────────────────────────────────────────────────────
-	private void RefreshAll()
-	{
-		RefreshPool();
-		RefreshWorkbench();
-		RefreshResults();
-	}
+    // ── Refresh ───────────────────────────────────────────────────────────
+    private void Refresh()
+    {
+        RefreshPool();
+        RefreshResults();
+    }
 
-	private void RefreshPool()
-	{
-		foreach (Node c in _poolBox.GetChildren()) c.QueueFree();
+    private void RefreshPool()
+    {
+        foreach (Node c in _poolBox.GetChildren()) c.QueueFree();
 
-		// Collect all knowledge from followers
-		var pool = CollectFollowerKnowledge();
-		if (pool.Count == 0)
-		{
-			var lbl = new Label();
-			lbl.Text = "Keine Anhänger mit Wissen vorhanden.\nBringe NPCs dazu dir zu glauben.";
-			lbl.AddThemeColorOverride("font_color", new Color(0.6f,0.5f,0.3f));
-			lbl.AutowrapMode = TextServer.AutowrapMode.Word;
-			_poolBox.AddChild(lbl);
-			return;
-		}
+        var pool = CollectFollowerKnowledge();
 
-		var header = new Label();
-		header.Text = $"📚 Wissen deiner Anhänger ({pool.Count} Konzepte)";
-		header.AddThemeFontSizeOverride("font_size", 13);
-		header.AddThemeColorOverride("font_color", new Color(0.6f,0.8f,1f));
-		_poolBox.AddChild(header);
-		_poolBox.AddChild(new HSeparator());
+        var hdr = MakeLabel($"📚 Wissen deiner Anhänger ({pool.Count})", 14, new Color(0.6f,0.85f,1f));
+        _poolBox.AddChild(hdr);
 
-		// Group by category
-		foreach (var group in pool.GroupBy(p => KnowledgeCatalog.Get(p.Key)?.Category ?? KnowledgeCategory.Concept)
-			.OrderBy(g => g.Key))
-		{
-			var catLabel = new Label();
-			catLabel.Text = CategoryName(group.Key);
-			catLabel.AddThemeFontSizeOverride("font_size", 11);
-			catLabel.AddThemeColorOverride("font_color", new Color(0.5f,0.6f,0.5f));
-			_poolBox.AddChild(catLabel);
+        if (pool.Count == 0)
+        {
+            _poolBox.AddChild(MakeLabel(
+                "Noch keine Anhänger.\nBringe NPCs zum Glauben damit der Pool gefüllt wird.",
+                12, new Color(0.6f,0.5f,0.3f), wrap: true));
+            _selectionLabel.Text = "";
+            return;
+        }
 
-			foreach (var kv in group.OrderByDescending(x => x.Value))
-			{
-				string id = kv.Key;
-				float  depth = kv.Value;
-				var def = KnowledgeCatalog.Get(id);
-				bool selected = _selected.Contains(id);
+        _poolBox.AddChild(new HSeparator());
+        _poolBox.AddChild(MakeLabel("Klicke Konzepte an um sie zu kombinieren:", 11, new Color(0.5f,0.5f,0.5f)));
 
-				var btn = new Button();
-				btn.Text = $"{def?.Icon ?? "•"} {def?.DisplayName ?? id}  {DepthBar(depth)}";
-				btn.AddThemeFontSizeOverride("font_size", 12);
-				btn.TooltipText = $"Tiefe: {depth:F2}";
+        // Group by category
+        var byCategory = pool
+            .GroupBy(kv => KnowledgeCatalog.Get(kv.Key)?.Category ?? KnowledgeCategory.Concept)
+            .OrderBy(g => (int)g.Key);
 
-				if (selected)
-				{
-					btn.AddThemeColorOverride("font_color", new Color(0.2f,0.2f,0.2f));
-					btn.Modulate = new Color(0.6f,0.9f,1f);
-				}
+        foreach (var group in byCategory)
+        {
+            var catHdr = MakeLabel(CategoryName(group.Key), 11, new Color(0.5f,0.65f,0.5f));
+            _poolBox.AddChild(catHdr);
 
-				string capturedId = id;
-				btn.Pressed += () => ToggleSelect(capturedId);
-				_poolBox.AddChild(btn);
-			}
-		}
-	}
+            foreach (var kv in group.OrderByDescending(x => x.Value))
+            {
+                string id    = kv.Key;
+                float  depth = kv.Value;
+                var def = KnowledgeCatalog.Get(id);
+                bool sel = _selected.Contains(id);
 
-	private void RefreshWorkbench()
-	{
-		foreach (Node c in _workbench.GetChildren()) c.QueueFree();
+                var btn = new Button();
+                btn.Text = $"{def?.Icon ?? "•"} {def?.DisplayName ?? id}   {DepthBar(depth)} {depth:F2}";
+                btn.AddThemeFontSizeOverride("font_size", 12);
+                btn.TooltipText = def?.Description ?? id;
+                btn.Flat = !sel;
 
-		for (int i = 0; i < 3; i++)
-		{
-			var slot = new Panel();
-			slot.CustomMinimumSize = new Vector2(160, 80);
+                if (sel) btn.Modulate = new Color(0.4f, 0.9f, 1f);
+                else     btn.Modulate = Colors.White;
 
-			var slotStyle = new StyleBoxFlat();
-			slotStyle.BgColor = i < _selected.Count
-				? new Color(0.15f, 0.25f, 0.4f)
-				: new Color(0.08f, 0.1f, 0.15f);
-			slotStyle.BorderColor = i < _selected.Count
-				? new Color(0.4f, 0.7f, 1f)
-				: new Color(0.25f, 0.3f, 0.4f);
-			slotStyle.BorderWidthBottom = slotStyle.BorderWidthTop =
-			slotStyle.BorderWidthLeft   = slotStyle.BorderWidthRight = 2;
-			slot.AddThemeStyleboxOverride("panel", slotStyle);
+                string cap = id;
+                btn.Pressed += () => { Toggle(cap); };
+                _poolBox.AddChild(btn);
+            }
+        }
 
-			var vbox = new VBoxContainer();
-			vbox.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-			vbox.AddThemeConstantOverride("separation", 2);
-			slot.AddChild(vbox);
+        UpdateSelectionLabel();
+    }
 
-			if (i < _selected.Count)
-			{
-				string id = _selected[i];
-				var def = KnowledgeCatalog.Get(id);
-				var lbl = new Label();
-				lbl.Text = $"{def?.Icon ?? "•"}\n{def?.DisplayName ?? id}";
-				lbl.HorizontalAlignment = HorizontalAlignment.Center;
-				lbl.AddThemeFontSizeOverride("font_size", 13);
-				lbl.AddThemeColorOverride("font_color", new Color(0.9f,0.95f,1f));
-				vbox.AddChild(lbl);
+    private void RefreshResults()
+    {
+        foreach (Node c in _resultBox.GetChildren()) c.QueueFree();
 
-				string capturedId = id;
-				var removeBtn = new Button();
-				removeBtn.Text = "✕ Entfernen";
-				removeBtn.AddThemeFontSizeOverride("font_size", 10);
-				removeBtn.Pressed += () => { _selected.Remove(capturedId); RefreshAll(); };
-				vbox.AddChild(removeBtn);
-			}
-			else
-			{
-				var lbl = new Label();
-				lbl.Text = $"Slot {i+1}\n(leer)";
-				lbl.HorizontalAlignment = HorizontalAlignment.Center;
-				lbl.AddThemeColorOverride("font_color", new Color(0.3f,0.35f,0.4f));
-				lbl.AddThemeFontSizeOverride("font_size", 11);
-				vbox.AddChild(lbl);
-			}
+        var hdr = MakeLabel("💡 Mögliche Offenbarungen", 14, new Color(1f,0.9f,0.4f));
+        _resultBox.AddChild(hdr);
+        _resultBox.AddChild(new HSeparator());
 
-			_workbench.AddChild(slot);
+        if (_selected.Count == 0)
+        {
+            _resultBox.AddChild(MakeLabel(
+                "Wähle ein oder mehrere Konzepte aus dem Pool links.\n\nDas Orakel zeigt dir was daraus entstehen kann.",
+                12, new Color(0.45f,0.45f,0.45f), wrap: true));
+            return;
+        }
 
-			if (i < 2)
-			{
-				var plus = new Label(); plus.Text = "+";
-				plus.AddThemeFontSizeOverride("font_size", 24);
-				plus.AddThemeColorOverride("font_color", new Color(0.5f,0.5f,0.5f));
-				plus.VerticalAlignment = VerticalAlignment.Center;
-				_workbench.AddChild(plus);
-			}
-		}
-	}
+        var pool = CollectFollowerKnowledge();
+        var selArr = _selected.ToArray();
+        var allMatches = KnowledgeRecipes.FindMatches(selArr);
 
-	private void RefreshResults()
-	{
-		foreach (Node c in _resultBox.GetChildren()) c.QueueFree();
+        // Partition: ready vs. depth-too-low
+        var ready  = allMatches.Where(r => HasDepth(r, pool)).ToList();
+        var nearly = allMatches.Where(r => !HasDepth(r, pool)).ToList();
 
-		var header = new Label();
-		header.Text = "💡 Mögliche Offenbarungen";
-		header.AddThemeFontSizeOverride("font_size", 13);
-		header.AddThemeColorOverride("font_color", new Color(1f,0.9f,0.5f));
-		_resultBox.AddChild(header);
-		_resultBox.AddChild(new HSeparator());
+        if (allMatches.Count == 0)
+        {
+            _resultBox.AddChild(MakeLabel(
+                "Diese Kombination ergibt (noch) keine Offenbarung.\nVersuche eine andere Auswahl.",
+                12, new Color(0.7f,0.4f,0.4f), wrap: true));
 
-		if (_selected.Count == 0)
-		{
-			var hint = new Label();
-			hint.Text = "Wähle 1–3 Wissens-Bausteine aus dem Pool links.";
-			hint.AutowrapMode = TextServer.AutowrapMode.Word;
-			hint.AddThemeColorOverride("font_color", new Color(0.5f,0.5f,0.5f));
-			_resultBox.AddChild(hint);
-			return;
-		}
+            // Hint: what other known knowledge would help
+            var hints = SuggestAdditions(selArr, pool);
+            if (hints.Count > 0)
+            {
+                _resultBox.AddChild(MakeLabel("Tipp: füge hinzu um mehr zu entdecken:", 11, new Color(0.5f,0.6f,0.4f)));
+                foreach (var h in hints.Take(4))
+                {
+                    var def = KnowledgeCatalog.Get(h);
+                    _resultBox.AddChild(MakeLabel($"  + {def?.Icon} {def?.DisplayName ?? h}", 12, new Color(0.7f,0.8f,0.5f)));
+                }
+            }
+            return;
+        }
 
-		_matches.Clear();
-		_matches.AddRange(KnowledgeRecipes.FindMatches(_selected.ToArray()));
+        if (ready.Count > 0)
+            _resultBox.AddChild(MakeLabel($"✅ {ready.Count} Offenbarung(en) bereit:", 12, new Color(0.4f,1f,0.5f)));
 
-		// Filter: only recipes where followers have sufficient depth
-		var pool = CollectFollowerKnowledge();
-		var validMatches = _matches.Where(r => {
-			foreach (var ing in r.Ingredients)
-				if (!pool.TryGetValue(ing, out float d) || d < r.MinDepth) return false;
-			return true;
-		}).ToList();
+        foreach (var r in ready)   AddRecipeCard(r, pool, ready: true);
 
-		// Also show near-matches (missing depth only)
-		var nearMatches = _matches.Except(validMatches).ToList();
+        if (nearly.Count > 0)
+        {
+            _resultBox.AddChild(new HSeparator());
+            _resultBox.AddChild(MakeLabel($"⚠ {nearly.Count} fast bereit (Tiefe fehlt):", 11, new Color(0.7f,0.6f,0.3f)));
+            foreach (var r in nearly) AddRecipeCard(r, pool, ready: false);
+        }
+    }
 
-		if (validMatches.Count == 0 && nearMatches.Count == 0)
-		{
-			var noMatch = new Label();
-			noMatch.Text = "Diese Kombination ergibt keine bekannte Offenbarung.\nProbiere andere Kombinationen.";
-			noMatch.AutowrapMode = TextServer.AutowrapMode.Word;
-			noMatch.AddThemeColorOverride("font_color", new Color(0.7f,0.4f,0.4f));
-			_resultBox.AddChild(noMatch);
-			return;
-		}
+    // ── Recipe card ───────────────────────────────────────────────────────
+    private void AddRecipeCard(KnowledgeRecipes.Recipe recipe, Dictionary<string,float> pool, bool ready)
+    {
+        var card = new PanelContainer();
+        var s = new StyleBoxFlat();
+        s.BgColor = ready ? new Color(0.07f,0.14f,0.09f) : new Color(0.1f,0.08f,0.05f);
+        s.BorderColor = ready ? new Color(0.3f,0.75f,0.4f) : new Color(0.5f,0.4f,0.15f);
+        s.BorderWidthBottom = s.BorderWidthTop = s.BorderWidthLeft = s.BorderWidthRight = 1;
+        card.AddThemeStyleboxOverride("panel", s);
 
-		foreach (var recipe in validMatches)
-		{
-			var recipePanel = BuildRecipePanel(recipe, ready: true);
-			_resultBox.AddChild(recipePanel);
-		}
+        var m = new MarginContainer();
+        foreach (var side in new[]{"left","right","top","bottom"})
+            m.AddThemeConstantOverride($"margin_{side}", 6);
+        card.AddChild(m);
 
-		if (nearMatches.Count > 0)
-		{
-			var nearHeader = new Label();
-			nearHeader.Text = "⚠ Fast bereit (zu geringe Tiefe):";
-			nearHeader.AddThemeFontSizeOverride("font_size", 11);
-			nearHeader.AddThemeColorOverride("font_color", new Color(0.7f,0.6f,0.3f));
-			_resultBox.AddChild(nearHeader);
-			foreach (var recipe in nearMatches)
-				_resultBox.AddChild(BuildRecipePanel(recipe, ready: false));
-		}
-	}
+        var vbox = new VBoxContainer();
+        vbox.AddThemeConstantOverride("separation", 2);
+        m.AddChild(vbox);
 
-	private Panel BuildRecipePanel(KnowledgeRecipes.Recipe recipe, bool ready)
-	{
-		var panel = new Panel();
-		panel.CustomMinimumSize = new Vector2(0, 0);
-		var pStyle = new StyleBoxFlat();
-		pStyle.BgColor = ready
-			? new Color(0.08f, 0.15f, 0.1f)
-			: new Color(0.1f, 0.09f, 0.06f);
-		pStyle.BorderColor = ready ? new Color(0.3f,0.8f,0.4f) : new Color(0.5f,0.45f,0.2f);
-		pStyle.BorderWidthBottom = pStyle.BorderWidthTop =
-		pStyle.BorderWidthLeft   = pStyle.BorderWidthRight = 1;
-		panel.AddThemeStyleboxOverride("panel", pStyle);
+        var def = KnowledgeCatalog.Get(recipe.Result);
+        vbox.AddChild(MakeLabel($"{def?.Icon ?? "💡"} {def?.DisplayName ?? recipe.Result}", 14,
+            ready ? new Color(0.5f,1f,0.6f) : new Color(0.85f,0.7f,0.35f)));
 
-		var vbox = new VBoxContainer();
-		vbox.AddThemeConstantOverride("separation", 2);
-		var margin = new MarginContainer();
-		foreach (var s in new[]{"left","right","top","bottom"})
-			margin.AddThemeConstantOverride($"margin_{s}", 6);
-		panel.AddChild(margin);
-		margin.AddChild(vbox);
-
-		var def = KnowledgeCatalog.Get(recipe.Result);
-		var titleLbl = new Label();
-		titleLbl.Text = $"{def?.Icon ?? "💡"} {def?.DisplayName ?? recipe.Result}";
-		titleLbl.AddThemeFontSizeOverride("font_size", 14);
-		titleLbl.AddThemeColorOverride("font_color", ready ? new Color(0.5f,1f,0.6f) : new Color(0.8f,0.7f,0.4f));
-		vbox.AddChild(titleLbl);
-
-		var hintLbl = new Label();
-		hintLbl.Text = recipe.Hint;
-		hintLbl.AddThemeFontSizeOverride("font_size", 11);
-		hintLbl.AddThemeColorOverride("font_color", new Color(0.7f,0.7f,0.6f));
-		hintLbl.AutowrapMode = TextServer.AutowrapMode.Word;
-		vbox.AddChild(hintLbl);
-
-		var thoughtLbl = new Label();
-		thoughtLbl.Text = $"💭 \"{recipe.NpcThought}\"";;
-		thoughtLbl.AddThemeFontSizeOverride("font_size", 10);
-		thoughtLbl.AddThemeColorOverride("font_color", new Color(0.5f,0.6f,0.8f));
-        thoughtLbl.AutowrapMode = TextServer.AutowrapMode.Word;
-        vbox.AddChild(thoughtLbl);
+        vbox.AddChild(MakeLabel(recipe.Hint, 11, new Color(0.7f,0.7f,0.6f), wrap: true));
+        vbox.AddChild(MakeLabel($"\" {recipe.NpcThought} \"", 10, new Color(0.5f,0.55f,0.8f), wrap: true));
 
         if (ready)
         {
-            var revealBtn = new Button();
-			revealBtn.Text = "✨ Dem Orakel offenbaren";
-			revealBtn.AddThemeFontSizeOverride("font_size", 13);
-            var capturedRecipe = recipe;
-            revealBtn.Pressed += () => RevealKnowledge(capturedRecipe);
-            vbox.AddChild(revealBtn);
+            var btn = new Button();
+            btn.Text = "✨ Dem Orakel offenbaren";
+            btn.AddThemeFontSizeOverride("font_size", 13);
+            var cap = recipe;
+            btn.Pressed += () => Reveal(cap);
+            vbox.AddChild(btn);
         }
         else
         {
-            // Show what's missing
-            var pool = CollectFollowerKnowledge();
-            var missingParts = new System.Text.StringBuilder();
+            // Show missing depth inline
+            var sb = new System.Text.StringBuilder("Benötigte Tiefe:\n");
             foreach (var ing in recipe.Ingredients)
             {
                 pool.TryGetValue(ing, out float d);
                 if (d < recipe.MinDepth)
                 {
-                    var ingDef = KnowledgeCatalog.Get(ing);
-					missingParts.Append($"  {ingDef?.DisplayName ?? ing}: {d:F2} / {recipe.MinDepth:F2}\n");
+                    var iDef = KnowledgeCatalog.Get(ing);
+                    sb.Append($"  {iDef?.DisplayName ?? ing}: {d:F2} von {recipe.MinDepth:F2}\n");
                 }
             }
-            var missingLbl = new Label();
-			missingLbl.Text = "Benötigte Tiefe fehlt:\n" + missingParts;
-			missingLbl.AddThemeFontSizeOverride("font_size", 10);
-			missingLbl.AddThemeColorOverride("font_color", new Color(0.8f,0.5f,0.3f));
-            vbox.AddChild(missingLbl);
+            vbox.AddChild(MakeLabel(sb.ToString(), 10, new Color(0.8f,0.5f,0.3f), wrap: true));
         }
 
-        return panel;
+        _resultBox.AddChild(card);
     }
 
-    // ── Logic ─────────────────────────────────────────────────────────────
-    private void ToggleSelect(string id)
+    // ── Actions ───────────────────────────────────────────────────────────
+    private void Toggle(string id)
     {
-        if (_selected.Contains(id))
-        {
-            _selected.Remove(id);
-        }
-        else if (_selected.Count < 3)
-        {
-            _selected.Add(id);
-        }
-        else
-        {
-			_statusLabel.Text = "Maximal 3 Bausteine gleichzeitig wählen.";
-            return;
-        }
-		_statusLabel.Text = "";
-        RefreshAll();
+        if (_selected.Contains(id)) _selected.Remove(id);
+        else _selected.Add(id);
+        Refresh();
     }
 
-    private void RevealKnowledge(KnowledgeRecipes.Recipe recipe)
+    private void Reveal(KnowledgeRecipes.Recipe recipe)
     {
-        if (OracleTablet.Instance == null)
-        {
-			_statusLabel.Text = "Kein Orakel-Tablet in der Welt gefunden!";
-            return;
-        }
-
-        // Teach result to all followers
         int taught = 0;
         foreach (var npc in GameManager.Instance?.AllNpcs ?? new())
         {
             if (!npc.Belief.CanHearOracle) continue;
+            bool hasBase = recipe.Ingredients.All(ing => npc.Knowledge.Knows(ing));
+            if (!hasBase) continue;
 
-            // Check NPC has the ingredients
-            bool canLearn = true;
-            foreach (var ing in recipe.Ingredients)
-                if (!npc.Knowledge.Knows(ing)) { canLearn = false; break; }
+            float depth = recipe.Ingredients
+                .Select(ing => npc.Knowledge.Knowledge.TryGetValue(ing, out var e) ? e.Depth : 0f)
+                .Average() * 0.75f;
 
-            if (!canLearn) continue;
-
-            float resultDepth = recipe.Ingredients
-                .Select(ing => npc.Knowledge.Knows(ing) ? npc.Knowledge.Knowledge[ing].Depth : 0f)
-                .Average() * 0.8f;
-
-			npc.Knowledge.Learn(recipe.Result, resultDepth, recipe.MinDepth + 0.2f, "oracle_revelation");
-			GD.Print($"[OracleEditor] {npc.NpcName} learned {recipe.Result} (depth:{resultDepth:F2}) via revelation");
+            npc.Knowledge.Learn(recipe.Result, depth, recipe.MinDepth + 0.2f, "oracle_revelation");
             taught++;
         }
 
-        // Trigger Oracle flash
-		OracleTablet.Instance.TriggerFlash($"oracle:{recipe.Result}");
+        OracleTablet.Instance?.TriggerFlash($"oracle:{recipe.Result}");
 
+        var def = KnowledgeCatalog.Get(recipe.Result);
         _statusLabel.Text = taught > 0
-			? $"✨ {taught} Anhänger haben '{KnowledgeCatalog.Get(recipe.Result)?.DisplayName ?? recipe.Result}' empfangen!"
-			: "⚠ Kein Anhänger konnte das Wissen empfangen (fehlende Grundlagen).";
+            ? $"✨ {taught} NPC(s) haben '{def?.DisplayName ?? recipe.Result}' empfangen!"
+            : "⚠ Kein NPC hatte alle Voraussetzungen.";
 
         _selected.Clear();
-        RefreshAll();
+        Refresh();
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────
+    private void UpdateSelectionLabel()
+    {
+        if (_selected.Count == 0)
+        {
+            _selectionLabel.Text = "Nichts ausgewählt";
+            _selectionLabel.AddThemeColorOverride("font_color", new Color(0.4f,0.4f,0.4f));
+        }
+        else
+        {
+            var names = _selected.Select(id => KnowledgeCatalog.Get(id)?.Icon + " " + (KnowledgeCatalog.Get(id)?.DisplayName ?? id));
+            _selectionLabel.Text = "Auswahl: " + string.Join(" + ", names);
+            _selectionLabel.AddThemeColorOverride("font_color", new Color(0.9f,0.85f,0.5f));
+        }
+    }
+
+    private static bool HasDepth(KnowledgeRecipes.Recipe r, Dictionary<string,float> pool)
+    {
+        foreach (var ing in r.Ingredients)
+            if (!pool.TryGetValue(ing, out float d) || d < r.MinDepth) return false;
+        return true;
+    }
+
+    private List<string> SuggestAdditions(string[] current, Dictionary<string,float> pool)
+    {
+        var suggestions = new HashSet<string>();
+        var currentSet  = new HashSet<string>(current);
+        foreach (var recipe in KnowledgeRecipes.All)
+        {
+            bool allCoveredExceptOne = recipe.Ingredients.Count(i => !currentSet.Contains(i)) <= 1;
+            if (!allCoveredExceptOne) continue;
+            foreach (var ing in recipe.Ingredients)
+                if (!currentSet.Contains(ing) && pool.ContainsKey(ing))
+                    suggestions.Add(ing);
+        }
+        return suggestions.ToList();
+    }
+
     private Dictionary<string, float> CollectFollowerKnowledge()
     {
         var pool = new Dictionary<string, float>();
-        if (GameManager.Instance == null) return pool;
-        foreach (var npc in GameManager.Instance.AllNpcs)
+        foreach (var npc in GameManager.Instance?.AllNpcs ?? new())
         {
             if (!npc.Belief.CanHearOracle) continue;
             foreach (var kv in npc.Knowledge.Knowledge)
-            {
                 if (!pool.ContainsKey(kv.Key) || pool[kv.Key] < kv.Value.Depth)
                     pool[kv.Key] = kv.Value.Depth;
-            }
         }
         return pool;
     }
 
-    private static string DepthBar(float depth)
+    private static string DepthBar(float d)
     {
-        int f = (int)(depth * 10);
+        int f = Mathf.Clamp((int)(d * 10), 0, 10);
         return new string('█', f) + new string('░', 10 - f);
     }
 
     private static string CategoryName(KnowledgeCategory cat) => cat switch {
-		KnowledgeCategory.Nature   => "🌿 Natur",
-		KnowledgeCategory.Tool     => "🔧 Werkzeug",
-		KnowledgeCategory.Building => "🏗 Gebäude",
-		KnowledgeCategory.Skill    => "📚 Fähigkeit",
-		KnowledgeCategory.Concept  => "💡 Konzept",
+        KnowledgeCategory.Nature   => "🌿 Natur",
+        KnowledgeCategory.Tool     => "🔧 Werkzeug",
+        KnowledgeCategory.Building => "🏗 Gebäude",
+        KnowledgeCategory.Skill    => "📚 Fähigkeit",
+        KnowledgeCategory.Concept  => "💡 Konzept",
         _ => cat.ToString()
     };
 
-    // ── UI Build ─────────────────────────────────────────────────────────
+    private static Label MakeLabel(string text, int size, Color col, bool wrap = false)
+    {
+        var l = new Label();
+        l.Text = text;
+        l.AddThemeFontSizeOverride("font_size", size);
+        l.AddThemeColorOverride("font_color", col);
+        if (wrap) l.AutowrapMode = TextServer.AutowrapMode.Word;
+        return l;
+    }
+
+    // ── UI Build ──────────────────────────────────────────────────────────
     private void BuildUI()
     {
-        _panel = new Panel();
-        _panel.AnchorLeft = 0f; _panel.AnchorRight  = 0f;
-        _panel.AnchorTop  = 0f; _panel.AnchorBottom = 0f;
-        _panel.OffsetLeft = 0; _panel.OffsetTop    = 0;
-        _panel.OffsetRight = 0; _panel.OffsetBottom = 0;
+        // Full-screen semi-transparent overlay
+        _root = new Control();
+        _root.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        AddChild(_root);
 
-        var style = new StyleBoxFlat();
-        style.BgColor    = new Color(0.05f, 0.05f, 0.1f, 0.97f);
-        style.BorderColor = new Color(0.5f, 0.4f, 0.8f);
-        style.BorderWidthBottom = style.BorderWidthTop =
-        style.BorderWidthLeft   = style.BorderWidthRight = 2;
-		_panel.AddThemeStyleboxOverride("panel", style);
+        // Background
+        var bg = new ColorRect();
+        bg.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        bg.Color = new Color(0f, 0f, 0f, 0.85f);
+        _root.AddChild(bg);
 
-        AddChild(_panel);
-        _panel.Ready += () => {
-            _panel.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        };
+        // Main panel — centered, 92% of screen
+        var panel = new Panel();
+        panel.AnchorLeft   = 0.04f; panel.AnchorRight  = 0.96f;
+        panel.AnchorTop    = 0.04f; panel.AnchorBottom = 0.96f;
+        var ps = new StyleBoxFlat();
+        ps.BgColor    = new Color(0.06f, 0.07f, 0.12f, 0.98f);
+        ps.BorderColor = new Color(0.5f, 0.4f, 0.8f);
+        ps.BorderWidthBottom = ps.BorderWidthTop =
+        ps.BorderWidthLeft   = ps.BorderWidthRight = 2;
+        ps.CornerRadiusBottomLeft = ps.CornerRadiusBottomRight =
+        ps.CornerRadiusTopLeft    = ps.CornerRadiusTopRight    = 8;
+        panel.AddThemeStyleboxOverride("panel", ps);
+        _root.AddChild(panel);
 
         var rootMargin = new MarginContainer();
         rootMargin.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-		foreach (var s in new[]{"left","right","top","bottom"})
-			rootMargin.AddThemeConstantOverride($"margin_{s}", 12);
-        _panel.AddChild(rootMargin);
+        foreach (var s in new[]{"left","right","top","bottom"})
+            rootMargin.AddThemeConstantOverride($"margin_{s}", 14);
+        panel.AddChild(rootMargin);
 
         var rootVbox = new VBoxContainer();
-		rootVbox.AddThemeConstantOverride("separation", 8);
+        rootVbox.AddThemeConstantOverride("separation", 8);
         rootMargin.AddChild(rootVbox);
 
-        // Title bar
-        var titleBar = new HBoxContainer();
-        var titleLbl = new Label();
-		titleLbl.Text = "☀ Orakel — Wissen kombinieren";
-		titleLbl.AddThemeFontSizeOverride("font_size", 20);
-		titleLbl.AddThemeColorOverride("font_color", new Color(1f, 0.9f, 0.4f));
-        titleLbl.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-        titleBar.AddChild(titleLbl);
-		var closeBtn = new Button(); closeBtn.Text = "✕ Schließen (O)";
+        // ── Title bar
+        var titleRow = new HBoxContainer();
+        var title = MakeLabel("☀  Orakel — Wissen offenbaren", 22, new Color(1f,0.9f,0.4f));
+        title.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        titleRow.AddChild(title);
+        var closeBtn = new Button(); closeBtn.Text = "✕  Schließen  (O)";
         closeBtn.Pressed += Close;
-        titleBar.AddChild(closeBtn);
-        rootVbox.AddChild(titleBar);
+        titleRow.AddChild(closeBtn);
+        rootVbox.AddChild(titleRow);
 
-        var subTitle = new Label();
-		subTitle.Text = "Wähle Wissens-Bausteine aus dem Pool deiner Anhänger und kombiniere sie zu neuen Offenbarungen.";
-        subTitle.AutowrapMode = TextServer.AutowrapMode.Word;
-		subTitle.AddThemeColorOverride("font_color", new Color(0.6f,0.6f,0.6f));
-        rootVbox.AddChild(subTitle);
+        // ── Selection display
+        _selectionLabel = MakeLabel("Nichts ausgewählt", 13, new Color(0.4f,0.4f,0.4f));
+        rootVbox.AddChild(_selectionLabel);
 
         rootVbox.AddChild(new HSeparator());
 
-        // Workbench
-		var wbLabel = new Label(); wbLabel.Text = "🔨 Werkbank";
-		wbLabel.AddThemeFontSizeOverride("font_size", 14);
-		wbLabel.AddThemeColorOverride("font_color", new Color(0.9f,0.8f,0.5f));
-        rootVbox.AddChild(wbLabel);
-        _workbench = new HBoxContainer();
-		_workbench.AddThemeConstantOverride("separation", 12);
-        rootVbox.AddChild(_workbench);
+        // ── Two-column content
+        var cols = new HBoxContainer();
+        cols.AddThemeConstantOverride("separation", 16);
+        cols.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
+        rootVbox.AddChild(cols);
 
-        rootVbox.AddChild(new HSeparator());
+        // Left column header
+        var leftVbox = new VBoxContainer();
+        leftVbox.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        leftVbox.SizeFlagsVertical   = Control.SizeFlags.ExpandFill;
+        leftVbox.AddThemeConstantOverride("separation", 4);
+        cols.AddChild(leftVbox);
 
-        // Three columns
-        var columns = new HBoxContainer();
-		columns.AddThemeConstantOverride("separation", 12);
-        columns.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
-        rootVbox.AddChild(columns);
-
-        // Left: pool
-        var poolScroll = new ScrollContainer();
-        poolScroll.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-        poolScroll.SizeFlagsVertical   = Control.SizeFlags.ExpandFill;
+        _poolScroll = new ScrollContainer();
+        _poolScroll.SizeFlagsVertical   = Control.SizeFlags.ExpandFill;
+        _poolScroll.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
         _poolBox = new VBoxContainer();
-		_poolBox.AddThemeConstantOverride("separation", 3);
+        _poolBox.AddThemeConstantOverride("separation", 3);
         _poolBox.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-        poolScroll.AddChild(_poolBox);
-        columns.AddChild(poolScroll);
+        _poolScroll.AddChild(_poolBox);
+        leftVbox.AddChild(_poolScroll);
 
-        // Right: results
-        var resultScroll = new ScrollContainer();
-        resultScroll.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-        resultScroll.SizeFlagsVertical   = Control.SizeFlags.ExpandFill;
+        // Vertical divider
+        var div = new VSeparator();
+        cols.AddChild(div);
+
+        // Right column
+        var rightVbox = new VBoxContainer();
+        rightVbox.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        rightVbox.SizeFlagsVertical   = Control.SizeFlags.ExpandFill;
+        rightVbox.AddThemeConstantOverride("separation", 4);
+        cols.AddChild(rightVbox);
+
+        _resultScroll = new ScrollContainer();
+        _resultScroll.SizeFlagsVertical   = Control.SizeFlags.ExpandFill;
+        _resultScroll.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
         _resultBox = new VBoxContainer();
-		_resultBox.AddThemeConstantOverride("separation", 6);
+        _resultBox.AddThemeConstantOverride("separation", 6);
         _resultBox.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-        resultScroll.AddChild(_resultBox);
-        columns.AddChild(resultScroll);
+        _resultScroll.AddChild(_resultBox);
+        rightVbox.AddChild(_resultScroll);
 
         // Status bar
-        _statusLabel = new Label();
-		_statusLabel.AddThemeColorOverride("font_color", new Color(0.9f,0.8f,0.4f));
-		_statusLabel.AddThemeFontSizeOverride("font_size", 13);
+        _statusLabel = MakeLabel("", 13, new Color(0.9f,0.8f,0.4f));
         rootVbox.AddChild(_statusLabel);
     }
 }

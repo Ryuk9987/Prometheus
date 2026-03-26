@@ -18,7 +18,8 @@ public partial class NpcEntity : Node3D
     public KnowledgeComponent   Knowledge   { get; private set; }
     public SocialComponent      Social      { get; private set; }
     public BeliefComponent      Belief      { get; private set; }
-    public SurvivalBehavior     Survival    { get; private set; }
+    public SurvivalBehavior      Survival     { get; private set; }
+    public CooperationComponent  Cooperation  { get; private set; }
 
     private Label3D               _nameLabel;
     private RandomNumberGenerator _rng = new();
@@ -36,8 +37,9 @@ public partial class NpcEntity : Node3D
         Knowledge   = GetNode<KnowledgeComponent>("KnowledgeComponent");
         Social      = GetNode<SocialComponent>("SocialComponent");
         Belief      = GetNode<BeliefComponent>("BeliefComponent");
-        Survival    = GetNode<SurvivalBehavior>("SurvivalBehavior");
-        _nameLabel  = GetNode<Label3D>("Label3D");
+        Survival     = GetNode<SurvivalBehavior>("SurvivalBehavior");
+        Cooperation  = GetNode<CooperationComponent>("CooperationComponent");
+        _nameLabel   = GetNode<Label3D>("Label3D");
 
         _nameLabel.Text = NpcName;
         _wanderTarget   = GlobalPosition;
@@ -63,11 +65,13 @@ public partial class NpcEntity : Node3D
 
     public override void _Process(double delta)
     {
-        // Survival has priority — if hungry/thirsty, seek resource
-        bool survivaling = Survival.Tick(delta);
-        if (survivaling) return;
+        // Priority 1: Survival (hunger/thirst critical)
+        if (Survival.Tick(delta)) return;
 
-        // Default: wander
+        // Priority 2: Community task (hunting, gathering, building)
+        if (Cooperation.Tick(delta)) return;
+
+        // Priority 3: Wander
         var dir = _wanderTarget - GlobalPosition;
         dir.Y = 0;
         if (dir.Length() > 0.6f)

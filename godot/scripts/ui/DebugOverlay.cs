@@ -32,8 +32,9 @@ public partial class DebugOverlay : CanvasLayer
         if (!_visible || GameManager.Instance == null) return;
 
         var sb = new System.Text.StringBuilder();
-        sb.AppendLine("[b]PROMETHEUS — Knowledge Spread[/b]");
-        sb.AppendLine($"[color=gray]NPCs: {GameManager.Instance.AllNpcs.Count} | TAB = toggle[/color]");
+        int tasks = TaskManager.Instance?.Tasks.Count ?? 0;
+        sb.AppendLine("[b]PROMETHEUS — Debug[/b]");
+        sb.AppendLine($"[color=gray]NPCs: {GameManager.Instance.AllNpcs.Count} | Tasks: {tasks} | TAB = toggle[/color]");
         sb.AppendLine("─────────────────────────────");
 
         foreach (var npc in GameManager.Instance.AllNpcs)
@@ -43,7 +44,9 @@ public partial class DebugOverlay : CanvasLayer
             string thirstCol = npc.Needs.Thirst >= 0.95f ? "red" : npc.Needs.IsThirsty ? "orange" : "green";
             string beliefCol = npc.Belief.Belief >= 0.3f ? "cyan" : "gray";
 
-            sb.Append($"[color=yellow]{npc.NpcName}[/color] ");
+            string role = npc.Cooperation.Role;
+            string task = npc.Cooperation.HasTask ? "⚔" : "";
+            sb.Append($"[color=yellow]{npc.NpcName}[/color][color=gray]({role}){task}[/color] ");
             sb.Append($"[color={hungerCol}]H:{npc.Needs.Hunger:F1}[/color] ");
             sb.Append($"[color={thirstCol}]T:{npc.Needs.Thirst:F1}[/color] ");
             sb.Append($"[color={beliefCol}]B:{npc.Belief.Belief:F1}[/color] ");

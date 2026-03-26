@@ -7,6 +7,7 @@
 [ext_resource type="Script" path="res://scripts/npc/SocialComponent.cs" id="5"]
 [ext_resource type="Script" path="res://scripts/npc/BeliefComponent.cs" id="6"]
 [ext_resource type="Script" path="res://scripts/npc/SurvivalBehavior.cs" id="7"]
+[ext_resource type="Script" path="res://scripts/npc/CooperationComponent.cs" id="8"]
 
 [sub_resource type="CapsuleMesh" id="CapsuleMesh_1"]
 radius = 0.3
@@ -59,3 +60,6 @@ script = ExtResource("6")
 
 [node name="SurvivalBehavior" type="Node" parent="."]
 script = ExtResource("7")
+
+[node name="CooperationComponent" type="Node" parent="."]
+script = ExtResource("8")

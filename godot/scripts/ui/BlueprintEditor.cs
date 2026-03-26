@@ -40,10 +40,32 @@ public partial class BlueprintEditor : CanvasLayer
     }
 
     private void ToggleOpen() { if (_open) Close(); else Open(); }
-    private void Open()  { _open = true;  _root.Visible = true; }
-    private void Close() { _open = false; _root.Visible = false;
-        // Push drawing to OracleTablet
-        OracleTablet.Instance?.SetDrawMode();
+    private void Open()
+    {
+        _open = true;
+        _root.Visible = true;
+        // Subscribe to interpretation events
+        if (OracleTablet.Instance != null && !OracleTablet.Instance.IsConnected(
+            OracleTablet.SignalName.Interpretation,
+            Callable.From<string,string,string>(OnInterpretation)))
+        {
+            OracleTablet.Instance.Connect(
+                OracleTablet.SignalName.Interpretation,
+                Callable.From<string,string,string>(OnInterpretation));
+        }
+    }
+    private void Close()
+    {
+        _open = false;
+        _root.Visible = false;
+        // Submit current drawing to OracleTablet
+        OracleTablet.Instance?.SetDrawing(_drawCanvas.GetStrokes());
+    }
+
+    private void OnInterpretation(string npcName, string ideaLabel, string reasoning)
+    {
+        if (_statusLabel != null)
+            _statusLabel.Text = $"💭 {npcName}: \"{ideaLabel}\"\n{reasoning}";
     }
 
     // ═══════════════════════════════════════════════════════════════════════

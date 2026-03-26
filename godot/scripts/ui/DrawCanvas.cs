@@ -78,6 +78,8 @@ public partial class DrawCanvas : Control
         QueueRedraw();
     }
 
+    public List<DrawnStroke> GetStrokes() => new List<DrawnStroke>(_strokes);
+
     // ── Input ────────────────────────────────────────────────────────────────
     public void ForwardInput(InputEvent @event)
     {

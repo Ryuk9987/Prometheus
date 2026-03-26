@@ -26,8 +26,15 @@ public partial class OracleTablet : Node3D
     private OmniLight3D    _glow;
     private TabletCanvas   _canvas;
 
-    private double _readTimer = 0;
+    private double _readTimer   = 0;
     private const double ReadInterval = 4.0;
+
+    // Flash effect state
+    private bool   _flashing       = false;
+    private double _flashTimer     = 0;
+    private const double FlashDuration = 3.0;  // seconds of intense glow
+    private const float  FlashPeak     = 12f;  // peak light energy
+    private const float  AttractRadius = 25f;  // NPCs within this range get attracted
 
     [Signal] public delegate void KnowledgeTransferredEventHandler(string npcName, string ideaId, float depth);
     [Signal] public delegate void InterpretationEventHandler(string npcName, string ideaLabel, string reasoning);
@@ -52,8 +59,32 @@ public partial class OracleTablet : Node3D
 
     public override void _Process(double delta)
     {
-        float pulse = 1f + 0.3f * Mathf.Sin((float)Time.GetTicksMsec() * 0.002f);
-        _glow.LightEnergy = GlowIntensity * pulse;
+        if (_flashing)
+        {
+            _flashTimer += delta;
+            float t = (float)(_flashTimer / FlashDuration);
+
+            // Sharp spike at start, then fade to normal glow
+            float flashCurve = Mathf.Exp(-t * 3f);                   // exponential decay
+            float pulse      = 1f + 0.3f * Mathf.Sin((float)Time.GetTicksMsec() * 0.008f);
+            _glow.LightEnergy = Mathf.Lerp(GlowIntensity * pulse, FlashPeak, flashCurve);
+
+            // Color shifts white-hot → back to blue
+            _glow.LightColor = _glow.LightColor.Lerp(new Color(0.4f, 0.7f, 1f), t * 0.05f);
+
+            if (_flashTimer >= FlashDuration)
+            {
+                _flashing         = false;
+                _glow.LightColor  = new Color(0.4f, 0.7f, 1f);
+                _glow.LightEnergy = GlowIntensity;
+                _glow.OmniRange   = 8f; // back to normal
+            }
+        }
+        else
+        {
+            float pulse = 1f + 0.3f * Mathf.Sin((float)Time.GetTicksMsec() * 0.002f);
+            _glow.LightEnergy = GlowIntensity * pulse;
+        }
 
         _readTimer += delta;
         if (_readTimer >= ReadInterval && HasContent)
@@ -72,17 +103,19 @@ public partial class OracleTablet : Node3D
         HasContent = true;
         _currentDrawing = null;
         _canvas.ShowBlueprint(ideaId);
+        TriggerFlash();
         GD.Print($"[OracleTablet] Blueprint: {ideaId}");
     }
 
     public void SetDrawing(List<DrawnStroke> strokes)
     {
-        if (strokes == null || strokes.Count == 0) return; // don't overwrite with empty
+        if (strokes == null || strokes.Count == 0) return;
         _currentDrawing   = strokes;
         Mode              = TabletMode.Draw;
         HasContent        = true;
         ActiveBlueprintId = "";
-        GD.Print($"[OracleTablet] Drawing submitted: {strokes.Count} strokes. NPCs will interpret on next read.");
+        TriggerFlash();
+        GD.Print($"[OracleTablet] Drawing submitted: {strokes.Count} strokes.");
     }
 
     public void SetDrawMode()
@@ -97,6 +130,34 @@ public partial class OracleTablet : Node3D
         ActiveBlueprintId = "";
         _currentDrawing   = null;
         _canvas.Clear();
+    }
+
+    // ── Flash + Attract ──────────────────────────────────────────────────────
+
+    private void TriggerFlash()
+    {
+        _flashing   = true;
+        _flashTimer = 0;
+        _glow.LightColor  = new Color(1f, 0.95f, 0.8f); // warm white flash
+        _glow.OmniRange   = 20f;                          // light expands
+        AttractNearbyNpcs();
+        GD.Print("[OracleTablet] ✨ Flash triggered — NPCs attracted.");
+    }
+
+    private void AttractNearbyNpcs()
+    {
+        if (GameManager.Instance == null) return;
+        int attracted = 0;
+        foreach (var npc in GameManager.Instance.AllNpcs)
+        {
+            float dist = GlobalPosition.DistanceTo(npc.GlobalPosition);
+            if (dist > AttractRadius) continue;
+
+            // Force tablet seek — override cooldown
+            npc.TabletSeek.ForceSeek();
+            attracted++;
+        }
+        GD.Print($"[OracleTablet] {attracted} NPCs attracted to tablet.");
     }
 
     // ── Knowledge transfer ───────────────────────────────────────────────────

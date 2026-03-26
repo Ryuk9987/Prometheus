@@ -24,6 +24,14 @@ public partial class TabletSeekBehavior : Node
         _checkTimer = GD.RandRange(0.0, CheckInterval);
     }
 
+    /// <summary>Force the NPC to seek the tablet immediately (called on flash).</summary>
+    public void ForceSeek()
+    {
+        _seeking      = true;
+        _seekCooldown = 0;
+        _checkTimer   = CheckInterval; // skip wait
+    }
+
     /// <summary>Returns true if this behavior is active (moving to / reading tablet).</summary>
     public bool Tick(double delta)
     {

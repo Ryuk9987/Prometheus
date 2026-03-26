@@ -23,29 +23,47 @@ public static class InterpretationEngine
     // Each rule: (shapeMatch, contextCheck, ideaId, label, baseWeight)
     private static readonly List<InterpretationRule> Rules = new()
     {
-        // Shape-based
-        new("circle",    null,          "astronomy",   "Sonne/Mond",    0.5f),
-        new("circle",    "fire",        "astronomy",   "Feuerball",     0.7f),
-        new("circle",    "hungry",      "agriculture", "Frucht/Korn",   0.8f),
-        new("triangle",  null,          "shelter",     "Dach/Zelt",     0.6f),
-        new("triangle",  "tools",       "metalwork",   "Pfeilspitze",   0.7f),
-        new("triangle",  "shelter",     "shelter",     "Hütte",         0.9f),
-        new("rectangle", null,          "shelter",     "Wand/Haus",     0.6f),
-        new("rectangle", "agriculture", "agriculture", "Feld",          0.8f),
-        new("rectangle", "writing",     "writing",     "Tafel/Buch",    0.9f),
-        new("line",      null,          "hunting",     "Speer",         0.5f),
-        new("line",      "hunting",     "hunting",     "Pfad/Jagd",     0.8f),
-        new("line",      "language",    "writing",     "Schrift",       0.7f),
+        // ── Haus (Dreieck + Rechteck) ─────────────────────────────────────
+        new("house",     null,          "shelter",     "Haus/Unterkunft",  0.95f),
+        new("house",     "shelter",     "shelter",     "Festes Haus",      1.0f),
+        new("house",     "tools",       "shelter",     "Steinhaus",        0.9f),
 
-        // Complex drawings
-        new("complex",   null,          "language",    "Symbole",       0.4f),
-        new("complex",   "language",    "writing",     "Schrift",       0.7f),
-        new("complex",   "astronomy",   "astronomy",   "Sternkarte",    0.8f),
-        new("complex",   "medicine",    "medicine",    "Heilrezept",    0.7f),
-        new("complex",   "metalwork",   "metalwork",   "Schmiedeplan",  0.8f),
+        // ── Bogen (Linie + Kurve) ─────────────────────────────────────────
+        new("bow",       null,          "hunting",     "Bogen & Pfeil",    0.9f),
+        new("bow",       "hunting",     "hunting",     "Präzisionsjagd",   1.0f),
+        new("bow",       "tools",       "hunting",     "Verbesserter Bogen",0.95f),
 
-        // Curious NPCs see more
-        new("*",         "curious",     "language",    "Neue Zeichen",  0.3f),
+        // ── Kreis ─────────────────────────────────────────────────────────
+        new("circle",    null,          "astronomy",   "Sonne/Mond",       0.5f),
+        new("circle",    "fire",        "astronomy",   "Feuerball",        0.7f),
+        new("circle",    "hungry",      "agriculture", "Frucht/Korn",      0.8f),
+        new("circle",    "astronomy",   "astronomy",   "Himmelsscheibe",   0.85f),
+
+        // ── Dreieck ───────────────────────────────────────────────────────
+        new("triangle",  null,          "shelter",     "Dach/Zelt",        0.6f),
+        new("triangle",  "tools",       "hunting",     "Pfeilspitze",      0.7f),
+        new("triangle",  "shelter",     "shelter",     "Zelt",             0.9f),
+        new("triangle",  "fire",        "fire",        "Feuerpyramide",    0.7f),
+
+        // ── Rechteck ──────────────────────────────────────────────────────
+        new("rectangle", null,          "shelter",     "Wand/Raum",        0.6f),
+        new("rectangle", "agriculture", "agriculture", "Feld/Anbaufläche", 0.85f),
+        new("rectangle", "writing",     "writing",     "Tafel/Buch",       0.9f),
+        new("rectangle", "shelter",     "shelter",     "Haus-Grundriss",   0.8f),
+
+        // ── Linie ─────────────────────────────────────────────────────────
+        new("line",      null,          "hunting",     "Speer/Pfad",       0.5f),
+        new("line",      "hunting",     "hunting",     "Jagdpfad",         0.8f),
+        new("line",      "language",    "writing",     "Schriftzeichen",   0.7f),
+
+        // ── Komplex ───────────────────────────────────────────────────────
+        new("complex",   null,          "language",    "Zeichen/Symbole",  0.4f),
+        new("complex",   "language",    "writing",     "Schrift",          0.7f),
+        new("complex",   "astronomy",   "astronomy",   "Sternkarte",       0.8f),
+        new("complex",   "medicine",    "medicine",    "Heilrezept",       0.7f),
+        new("complex",   "metalwork",   "metalwork",   "Schmiedeplan",     0.8f),
+
+        new("*",         "curious",     "language",    "Neue Zeichen",     0.3f),
     };
 
     public static InterpretationResult Interpret(DrawingFeatures features, NpcEntity npc)

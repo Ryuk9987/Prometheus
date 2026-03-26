@@ -66,9 +66,11 @@ public partial class DebugOverlay : CanvasLayer
     {
         if (!_visible || GameManager.Instance == null) return;
 
-        int tasks = TaskManager.Instance?.Tasks.Count ?? 0;
+        int tasks   = TaskManager.Instance?.Tasks.Count ?? 0;
+        int tribes  = TribeManager.Instance?.Tribes.Count ?? 0;
+        string time = DayCycle.Instance != null ? $" | 🕐 {DayCycle.Instance.TimeString}" : "";
         string followHint = _followed != null ? $"  📷 {_followed.NpcName}" : "";
-        _headerLabel.Text = $"PROMETHEUS — Debug\nNPCs: {GameManager.Instance.AllNpcs.Count} | Tasks: {tasks} | TAB=toggle{followHint}";
+        _headerLabel.Text = $"PROMETHEUS — Debug{time}\nNPCs: {GameManager.Instance.AllNpcs.Count} | Tasks: {tasks} | Stämme: {tribes} | TAB=toggle{followHint}";
 
         // Rebuild NPC list every frame (simple approach for debug)
         foreach (Node child in _npcList.GetChildren())

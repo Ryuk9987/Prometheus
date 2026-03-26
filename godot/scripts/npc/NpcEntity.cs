@@ -32,6 +32,10 @@ public partial class NpcEntity : Node3D
     private const float  WanderRadius   = 15f;
     private const float  MoveSpeed      = 2.5f;
 
+    // Tribe coordination
+    public Vector3 TribeCenterHint    { get; set; }
+    public bool    ShouldRallyToTribe { get; set; } = false;
+
     public override void _Ready()
     {
         Personality = GetNode<PersonalityComponent>("PersonalityComponent");
@@ -81,7 +85,18 @@ public partial class NpcEntity : Node3D
         // Priority 4: Community task (hunting, gathering)
         if (Cooperation.Tick(delta)) return;
 
-        // Priority 3: Wander
+        // Priority 5: Rally to tribe at night
+        if (ShouldRallyToTribe)
+        {
+            var dir = TribeCenterHint - GlobalPosition; dir.Y = 0;
+            if (dir.Length() > 5f)
+            {
+                GlobalPosition += dir.Normalized() * MoveSpeed * 0.6f * (float)delta;
+                return;
+            }
+        }
+
+        // Priority 6: Wander
         var dir = _wanderTarget - GlobalPosition;
         dir.Y = 0;
         if (dir.Length() > 0.6f)

@@ -138,6 +138,8 @@ public partial class OracleTablet : Node3D
         var comp = CompositionAnalyzer.Analyze(stamps ?? new List<PlacedStamp>(), strokes);
         LastComposition = comp;
         GD.Print($"[OracleTablet] Composition: '{comp.Description}' → idea: {comp.PrimaryIdea} | stamps: {string.Join(",", comp.StampCounts.Keys)}");
+        // Immediate transfer to NPCs already nearby
+        CallDeferred(MethodName.TransferToNearbyNpcs);
     }
 
     public void SetDrawMode()

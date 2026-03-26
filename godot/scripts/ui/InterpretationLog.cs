@@ -11,7 +11,7 @@ public partial class InterpretationLog : CanvasLayer
     private VBoxContainer _log;
     private const int     MaxEntries = 8;
 
-    private readonly Queue<Label> _entries = new();
+    private readonly Queue<RichTextLabel> _entries = new();
 
     public override void _Ready()
     {

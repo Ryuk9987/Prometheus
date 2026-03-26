@@ -431,10 +431,11 @@ public partial class NpcInspector : CanvasLayer
     {
         // Panel: fixed size, anchored top-right corner
         _panel = new Panel();
-        _panel.AnchorLeft = 1f; _panel.AnchorRight  = 1f;
-        _panel.AnchorTop  = 0f; _panel.AnchorBottom = 0f;
-        _panel.OffsetLeft = -326; _panel.OffsetTop  = 10;
-        _panel.OffsetRight = 0;   _panel.OffsetBottom = 590;
+        _panel.AnchorLeft  = 1f; _panel.AnchorRight  = 1f;
+        _panel.AnchorTop   = 0f; _panel.AnchorBottom = 0f;
+        _panel.OffsetLeft  = -326; _panel.OffsetTop    = 10;
+        _panel.OffsetRight = 0;   _panel.OffsetBottom  = 590;
+        _panel.MouseFilter = Control.MouseFilterEnum.Stop;
 
         var style = new StyleBoxFlat();
         style.BgColor = new Color(0.07f, 0.08f, 0.13f, 0.97f);
@@ -484,6 +485,7 @@ public partial class NpcInspector : CanvasLayer
         _tabScroll = new ScrollContainer();
         _tabScroll.SizeFlagsVertical   = Control.SizeFlags.ExpandFill;
         _tabScroll.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        _tabScroll.MouseFilter         = Control.MouseFilterEnum.Stop;
         root.AddChild(_tabScroll);
 
         _tabContent = new VBoxContainer();

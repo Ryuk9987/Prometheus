@@ -354,6 +354,7 @@ public partial class NpcRoster : CanvasLayer
         _panel = new Panel();
         _panel.AnchorLeft   = 0.05f; _panel.AnchorRight  = 0.95f;
         _panel.AnchorTop    = 0.04f; _panel.AnchorBottom = 0.96f;
+        _panel.MouseFilter  = Control.MouseFilterEnum.Stop;
 
         var ps = new StyleBoxFlat();
         ps.BgColor    = new Color(0.04f, 0.05f, 0.09f, 0.97f);
@@ -402,7 +403,8 @@ public partial class NpcRoster : CanvasLayer
         rootV.AddChild(new HSeparator());
 
         _scroll = new ScrollContainer();
-        _scroll.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
+        _scroll.SizeFlagsVertical   = Control.SizeFlags.ExpandFill;
+        _scroll.MouseFilter         = Control.MouseFilterEnum.Stop;
         rootV.AddChild(_scroll);
 
         _list = new VBoxContainer();

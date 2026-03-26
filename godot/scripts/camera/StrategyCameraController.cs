@@ -37,10 +37,22 @@ public partial class StrategyCameraController : Node3D
         UpdateCameraPosition();
     }
 
+    private bool IsMouseOverUI()
+    {
+        // Check if any UI Control under the mouse is consuming input
+        var mousePos = GetViewport().GetMousePosition();
+        var picked   = GetViewport().GuiGetHoveredControl();
+        return picked != null && picked.MouseFilter != Control.MouseFilterEnum.Ignore;
+    }
+
     public override void _Input(InputEvent @event)
     {
         if (@event is InputEventMouseButton mb)
         {
+            // Don't zoom/pan when mouse is over a UI element
+            if ((mb.ButtonIndex == MouseButton.WheelUp || mb.ButtonIndex == MouseButton.WheelDown)
+                && IsMouseOverUI()) return;
+
             if (mb.ButtonIndex == MouseButton.WheelUp)
                 _zoomLevel = Mathf.Clamp(_zoomLevel - ZoomSpeed, MinZoom, MaxZoom);
             else if (mb.ButtonIndex == MouseButton.WheelDown)

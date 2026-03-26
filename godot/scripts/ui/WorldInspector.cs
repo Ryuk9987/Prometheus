@@ -266,7 +266,8 @@ public partial class WorldInspector : CanvasLayer
         _panel = new Panel();
         _panel.AnchorLeft   = 0f; _panel.AnchorRight  = 0f;
         _panel.AnchorTop    = 1f; _panel.AnchorBottom = 1f;
-        _panel.Position = new Vector2(8, -280);
+        _panel.Position     = new Vector2(8, -280);
+        _panel.MouseFilter  = Control.MouseFilterEnum.Stop;
         _panel.SetDeferred(Control.PropertyName.Size, new Vector2(260, 270));
 
         var style = new StyleBoxFlat();
@@ -305,6 +306,7 @@ public partial class WorldInspector : CanvasLayer
 
         var scroll = new ScrollContainer();
         scroll.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
+        scroll.MouseFilter       = Control.MouseFilterEnum.Stop;
         _content = new VBoxContainer();
         _content.AddThemeConstantOverride("separation", 3);
         scroll.AddChild(_content);

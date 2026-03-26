@@ -415,6 +415,7 @@ public partial class OracleEditor : CanvasLayer
 		_poolScroll = new ScrollContainer();
 		_poolScroll.SizeFlagsVertical   = Control.SizeFlags.ExpandFill;
 		_poolScroll.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+		_poolScroll.MouseFilter         = Control.MouseFilterEnum.Stop;
 		_poolBox = new VBoxContainer();
 		_poolBox.AddThemeConstantOverride("separation", 3);
 		_poolBox.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
@@ -435,6 +436,7 @@ public partial class OracleEditor : CanvasLayer
 		_resultScroll = new ScrollContainer();
 		_resultScroll.SizeFlagsVertical   = Control.SizeFlags.ExpandFill;
 		_resultScroll.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+		_resultScroll.MouseFilter         = Control.MouseFilterEnum.Stop;
 		_resultBox = new VBoxContainer();
 		_resultBox.AddThemeConstantOverride("separation", 6);
 		_resultBox.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;

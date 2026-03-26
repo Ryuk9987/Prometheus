@@ -63,6 +63,18 @@ public static class KnowledgeCatalog
             KnowledgeCategory.Nature, "🔥", 0.1f,
             materials: new(){ new(ResourceType.Wood, 3f) });
 
+        // ── Buildings (fire-derived) ───────────────────────────────────────
+        Add("campfire", "Lagerfeuer",  "Äste aufgestapelt und entzündet.",
+            KnowledgeCategory.Building, "🔥", 0.15f,
+            materials: new(){ new(ResourceType.Wood, 3f) },
+            requires: new(){ "fire" });
+
+        Add("campfire_stone", "Lagerfeuer mit Steinkranz",
+            "Äste + Steine als Feuerschutz.",
+            KnowledgeCategory.Building, "🔥🪨", 0.15f,
+            materials: new(){ new(ResourceType.Wood, 3f), new(ResourceType.Stone, 3f) },
+            requires: new(){ "fire" });
+
         Add("water",    "Wasser",      "Lebensnotwendige Flüssigkeit.",
             KnowledgeCategory.Nature, "💧", 0.05f);
 

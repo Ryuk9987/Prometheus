@@ -58,13 +58,20 @@ public partial class PlayerBuildMenu : CanvasLayer
     {
         foreach (Node c in _content.GetChildren()) c.QueueFree();
 
-        // Collect all knowledge known across ALL NPCs (tribe knowledge)
+        // Only knowledge known by FOLLOWERS (believers) — losing them costs you options
         var knownIds = new HashSet<string>();
         if (GameManager.Instance != null)
             foreach (var npc in GameManager.Instance.AllNpcs)
+            {
+                if (!npc.Belief.CanHearOracle) continue; // only followers
                 foreach (var k in npc.Knowledge.Knowledge)
-                    if (k.Value.Depth >= KnowledgeCatalog.Get(k.Key)?.MinDepth)
+                {
+                    var def = KnowledgeCatalog.Get(k.Key);
+                    if (def == null) continue;
+                    if (k.Value.Depth >= def.MinDepth)
                         knownIds.Add(k.Key);
+                }
+            }
 
         // Group by category
         foreach (KnowledgeCategory cat in System.Enum.GetValues(typeof(KnowledgeCategory)))

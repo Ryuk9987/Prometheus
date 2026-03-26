@@ -156,6 +156,24 @@ public partial class OracleTablet : Node3D
         _canvas.Clear();
     }
 
+    private static string MapToCatalogId(string ideaId, string label)
+    {
+        // Map composition descriptions to specific catalog IDs
+        if (label.Contains("Steinkranz"))              return "campfire_stone";
+        if (label.Contains("Lagerfeuer"))              return "campfire";
+        if (label.Contains("Haus") || label.Contains("Unterkunft")) return "shelter";
+        if (label.Contains("Hütte"))                   return "hut";
+        if (label.Contains("Bogen"))                   return "bow";
+        if (label.Contains("Speer"))                   return "hunting";
+        if (label.Contains("Feld"))                    return "agriculture";
+        if (label.Contains("Mauer"))                   return "wall";
+        if (label.Contains("Schrift"))                 return "writing";
+        if (label.Contains("Sternkarte"))              return "astronomy";
+        if (label.Contains("Schmied"))                 return "metalwork";
+        if (label.Contains("Heilmittel") || label.Contains("Heiltrank")) return "medicine";
+        return ideaId; // fallback to base idea id
+    }
+
     // ── Flash + Attract ──────────────────────────────────────────────────────
 
     private void TriggerFlash()
@@ -251,11 +269,13 @@ public partial class OracleTablet : Node3D
 
         if (result.IdeaId == "unknown") return;
 
-        npc.Knowledge.Learn(result.IdeaId, result.Depth, result.Confidence, "oracle_tablet");
+        // Map composition description to specific catalog entry
+        string catalogId = MapToCatalogId(result.IdeaId, result.IdeaLabel);
+        npc.Knowledge.Learn(catalogId, result.Depth, result.Confidence, "oracle_tablet");
         npc.Belief.Reinforce(0.08f);
 
-        GD.Print($"[OracleTablet] {npc.NpcName}: '{result.IdeaLabel}' depth:{result.Depth:F2}");
-        EmitSignal(SignalName.KnowledgeTransferred, npc.NpcName, result.IdeaId, result.Depth);
+        GD.Print($"[OracleTablet] {npc.NpcName}: '{result.IdeaLabel}' ({catalogId}) depth:{result.Depth:F2}");
+        EmitSignal(SignalName.KnowledgeTransferred, npc.NpcName, catalogId, result.Depth);
         EmitSignal(SignalName.Interpretation, npc.NpcName, result.IdeaLabel, result.Reasoning);
     }
 }

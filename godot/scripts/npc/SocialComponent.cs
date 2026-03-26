@@ -49,11 +49,13 @@ public partial class SocialComponent : Node
 
         if (closest == null) return;
 
+        // Spread belief
+        _owner.Belief.SpreadTo(closest.Belief, _owner.Personality.Empathy);
+
         // Share a random piece of knowledge
         var myKnowledge = _owner.Knowledge.Knowledge;
         if (myKnowledge.Count == 0) return;
 
-        // Pick random knowledge item to share
         var keys = new List<string>(myKnowledge.Keys);
         string topic = keys[GD.RandRange(0, keys.Count - 1)];
 

@@ -1,10 +1,11 @@
-[gd_scene load_steps=7 format=3 uid="uid://npc_entity"]
+[gd_scene load_steps=8 format=3 uid="uid://npc_entity"]
 
 [ext_resource type="Script" path="res://scripts/npc/NpcEntity.cs" id="1"]
 [ext_resource type="Script" path="res://scripts/npc/PersonalityComponent.cs" id="2"]
 [ext_resource type="Script" path="res://scripts/npc/NeedsComponent.cs" id="3"]
 [ext_resource type="Script" path="res://scripts/npc/KnowledgeComponent.cs" id="4"]
 [ext_resource type="Script" path="res://scripts/npc/SocialComponent.cs" id="5"]
+[ext_resource type="Script" path="res://scripts/npc/BeliefComponent.cs" id="6"]
 
 [sub_resource type="CapsuleMesh" id="CapsuleMesh_1"]
 radius = 0.3
@@ -51,3 +52,6 @@ script = ExtResource("4")
 
 [node name="SocialComponent" type="Node" parent="."]
 script = ExtResource("5")
+
+[node name="BeliefComponent" type="Node" parent="."]
+script = ExtResource("6")

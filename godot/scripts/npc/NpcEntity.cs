@@ -16,6 +16,7 @@ public partial class NpcEntity : Node3D
     public NeedsComponent       Needs       { get; private set; }
     public KnowledgeComponent   Knowledge   { get; private set; }
     public SocialComponent      Social      { get; private set; }
+    public BeliefComponent      Belief      { get; private set; }
 
     private Label3D               _nameLabel;
     private RandomNumberGenerator _rng = new();
@@ -32,6 +33,7 @@ public partial class NpcEntity : Node3D
         Needs       = GetNode<NeedsComponent>("NeedsComponent");
         Knowledge   = GetNode<KnowledgeComponent>("KnowledgeComponent");
         Social      = GetNode<SocialComponent>("SocialComponent");
+        Belief      = GetNode<BeliefComponent>("BeliefComponent");
         _nameLabel  = GetNode<Label3D>("Label3D");
 
         _nameLabel.Text = NpcName;
@@ -39,6 +41,9 @@ public partial class NpcEntity : Node3D
 
         _rng.Randomize();
         Personality.Randomize(_rng);
+
+        // Transfer initial belief score to BeliefComponent
+        Belief.Belief = BeliefScore;
 
         // Apply starter knowledge if set by spawner
         if (StarterKnowledgeId != "")
@@ -73,6 +78,7 @@ public partial class NpcEntity : Node3D
     private void OnWorldTick(double delta)
     {
         Needs.OnWorldTick(delta);
+        Belief.OnWorldTick(delta);
         Social.OnWorldTick(delta);
     }
 

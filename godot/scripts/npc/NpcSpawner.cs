@@ -32,23 +32,42 @@ public partial class NpcSpawner : Node3D
 			npc.NpcName     = Names[i % Names.Length];
 			npc.Age         = rng.RandiRange(15, 45);
 			npc.TribeId     = "tribe_alpha";
-			// First 3 NPCs start as believers — they can hear the Oracle
-			npc.BeliefScore = i < 3
-				? rng.RandfRange(0.4f, 0.7f)
-				: rng.RandfRange(0.0f, 0.25f);
+			// First 6 NPCs start as believers — enough for a usable knowledge pool
+			npc.BeliefScore = i < 6
+				? rng.RandfRange(0.35f, 0.75f)
+				: rng.RandfRange(0.0f, 0.2f);
 
 			float x = rng.RandfRange(-SpawnRadius, SpawnRadius);
 			float z = rng.RandfRange(-SpawnRadius, SpawnRadius);
 			npc.Position = new Vector3(x, 0.5f, z);
 
-			// First NPC is the "fire keeper" — starter knowledge applied in NpcEntity._Ready()
-			if (i == 0)
-			{
-				npc.NpcName                  = "Arak";
-				npc.StarterKnowledgeId       = "fire";
-				npc.StarterKnowledgeDepth    = 0.8f;
+			// Starter knowledge per NPC slot
+			if (i == 0) {
+				npc.NpcName = "Arak";
+				npc.StarterKnowledgeId = "fire";
+				npc.StarterKnowledgeDepth = 0.8f;
 				npc.StarterKnowledgeConfidence = 0.9f;
 				GD.Print("[NpcSpawner] Arak will be the Fire Keeper.");
+			}
+			else if (i == 1) {
+				npc.StarterKnowledgeId = "stone";
+				npc.StarterKnowledgeDepth = 0.5f;
+				npc.StarterKnowledgeConfidence = 0.7f;
+			}
+			else if (i == 2) {
+				npc.StarterKnowledgeId = "hunting";
+				npc.StarterKnowledgeDepth = 0.4f;
+				npc.StarterKnowledgeConfidence = 0.6f;
+			}
+			else if (i == 3) {
+				npc.StarterKnowledgeId = "water";
+				npc.StarterKnowledgeDepth = 0.5f;
+				npc.StarterKnowledgeConfidence = 0.7f;
+			}
+			else if (i == 4) {
+				npc.StarterKnowledgeId = "wood";
+				npc.StarterKnowledgeDepth = 0.4f;
+				npc.StarterKnowledgeConfidence = 0.6f;
 			}
 
 			GetParent().CallDeferred(Node.MethodName.AddChild, npc);

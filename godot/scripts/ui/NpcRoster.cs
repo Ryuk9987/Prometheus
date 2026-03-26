@@ -266,6 +266,20 @@ public partial class NpcRoster : CanvasLayer
             rel == PlayerRelation.Splinter ? new Color(1f,0.55f,0.2f) :
                                              new Color(0.35f,0.35f,0.4f)));
 
+        if (npc.Wellbeing != null)
+        {
+            barsCol.AddChild(MiniBar("😊", npc.Wellbeing.Wellbeing,
+                npc.Wellbeing.IsContent ? new Color(0.4f,0.9f,0.4f) :
+                npc.Wellbeing.IsSuffering ? new Color(1f,0.3f,0.3f) : new Color(0.8f,0.7f,0.3f)));
+            // Temperature warning
+            if (npc.Wellbeing.IsCold)
+            {
+                var coldLbl = new Label(); coldLbl.Text = "🥶";
+                coldLbl.AddThemeFontSizeOverride("font_size", 11);
+                barsCol.AddChild(coldLbl);
+            }
+        }
+
         // ── Knowledge pills
         var pillsFlow = new HFlowContainer();
         pillsFlow.AddThemeConstantOverride("h_separation", 3);

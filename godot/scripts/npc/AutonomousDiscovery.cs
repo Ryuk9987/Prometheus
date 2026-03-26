@@ -119,6 +119,11 @@ public partial class AutonomousDiscovery : Node
         if (!Has("lumber") && Has("axe", 0.2f) && _buildEvents > 30)
             Discover("lumber", 0.15f, 0.35f, "processed wood into planks");
 
+        // Wellbeing-driven discovery hints
+        var hint = _owner.Wellbeing?.GetDiscoveryHint();
+        if (hint != null && !_owner.Knowledge.Knows(hint))
+            Discover(hint, 0.1f, 0.3f, $"driven by wellbeing need ({hint})");
+
         // Reset counters
         _hungerEvents = Mathf.Max(0, _hungerEvents - 5);
         _fireExposure = Mathf.Max(0, _fireExposure - 10);

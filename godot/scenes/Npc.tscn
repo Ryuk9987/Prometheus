@@ -14,6 +14,7 @@
 [ext_resource type="Script" path="res://scripts/npc/AutonomousDiscovery.cs" id="12"]
 [ext_resource type="Script" path="res://scripts/npc/ForagingBehavior.cs" id="13"]
 [ext_resource type="Script" path="res://scripts/npc/NpcInventory.cs" id="14"]
+[ext_resource type="Script" path="res://scripts/npc/WellbeingComponent.cs" id="15"]
 
 [sub_resource type="CapsuleMesh" id="CapsuleMesh_1"]
 radius = 0.3
@@ -87,3 +88,6 @@ script = ExtResource("13")
 
 [node name="NpcInventory" type="Node" parent="."]
 script = ExtResource("14")
+
+[node name="WellbeingComponent" type="Node" parent="."]
+script = ExtResource("15")

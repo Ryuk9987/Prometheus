@@ -25,6 +25,7 @@ public partial class NpcEntity : Node3D
     public BuildWorkerBehavior   BuildWorker        { get; private set; }
     public ForagingBehavior      Foraging           { get; private set; }
     public NpcInventory          Inventory          { get; private set; }
+    public WellbeingComponent    Wellbeing          { get; private set; }
     public SocialRole            SocialRole         { get; set; } = SocialRole.Unassigned;
 
     private Label3D               _nameLabel;
@@ -54,6 +55,7 @@ public partial class NpcEntity : Node3D
         BuildWorker     = GetNode<BuildWorkerBehavior>("BuildWorkerBehavior");
         Foraging        = GetNode<ForagingBehavior>("ForagingBehavior");
         Inventory       = GetNode<NpcInventory>("NpcInventory");
+        Wellbeing       = GetNode<WellbeingComponent>("WellbeingComponent");
         _nameLabel   = GetNode<Label3D>("Label3D");
 
         _nameLabel.Text = NpcName;

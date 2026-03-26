@@ -156,6 +156,37 @@ public partial class NpcInspector : CanvasLayer
         AddBar(vbox, "Misstrauen", _npc.Personality.Distrust,   new Color(0.8f,0.3f,0.3f));
 
         vbox.AddChild(new HSeparator());
+        AddSectionHeader(vbox, "Wohlbefinden");
+        var wb = _npc.Wellbeing;
+        if (wb != null)
+        {
+            AddBar(vbox, "Wohlbefinden", wb.Wellbeing,
+                wb.IsContent ? new Color(0.3f,1f,0.5f) :
+                wb.IsSuffering ? new Color(1f,0.3f,0.3f) : new Color(0.8f,0.7f,0.3f));
+            AddBar(vbox, "Sicherheit",  wb.Safety,
+                wb.FeelsSafe ? new Color(0.4f,0.8f,0.4f) : new Color(1f,0.5f,0.3f));
+            AddBar(vbox, "Komfort",     wb.Comfort,
+                wb.IsComfortable ? new Color(0.6f,0.8f,1f) : new Color(0.7f,0.5f,0.3f));
+            AddBar(vbox, "Temperatur",  wb.Temperature,
+                wb.IsCold ? new Color(0.3f,0.5f,1f) : new Color(1f,0.6f,0.2f));
+
+            // Status badges
+            var badges = new System.Text.StringBuilder();
+            if (wb.IsCold)    badges.Append("🥶 Friert  ");
+            if (!wb.FeelsSafe) badges.Append("😨 Angst  ");
+            if (!wb.IsComfortable) badges.Append("😣 Unkomfortabel  ");
+            if (wb.IsContent)  badges.Append("😊 Zufrieden");
+            if (badges.Length > 0)
+            {
+                var statusLbl = new Label();
+                statusLbl.Text = badges.ToString();
+                statusLbl.AddThemeFontSizeOverride("font_size", 11);
+                statusLbl.AddThemeColorOverride("font_color", new Color(0.8f,0.8f,0.6f));
+                vbox.AddChild(statusLbl);
+            }
+        }
+
+        vbox.AddChild(new HSeparator());
         AddSectionHeader(vbox, "Glaube");
         AddBar(vbox, "Orakel-Glaube", _npc.Belief.Belief,
             _npc.Belief.CanHearOracle ? new Color(0.4f,0.8f,1f) : new Color(0.5f,0.5f,0.5f));

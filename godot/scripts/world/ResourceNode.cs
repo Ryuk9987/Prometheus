@@ -25,12 +25,25 @@ public partial class ResourceNode : Node3D
 
     public bool IsEmpty => Amount <= 0f;
 
+    private WorldObjectEntry _registryEntry;
+
     public override void _Ready()
     {
         _mesh  = GetNodeOrNull<MeshInstance3D>("MeshInstance3D");
         _label = GetNodeOrNull<Label3D>("Label3D");
         UpdateVisual();
         ResourceManager.Instance?.Register(this);
+
+        string icon = Type switch {
+            ResourceType.Food  => "🍎", ResourceType.Water => "💧",
+            ResourceType.Wood  => "🪵", ResourceType.Stone => "⬟", _ => "•"
+        };
+        string name = Type switch {
+            ResourceType.Food  => "Nahrungsquelle", ResourceType.Water => "Wasserquelle",
+            ResourceType.Wood  => "Baum/Holz",      ResourceType.Stone => "Stein",      _ => Type.ToString()
+        };
+        _registryEntry = new WorldObjectEntry(this, WorldObjectKind.Resource, name, icon);
+        WorldObjectRegistry.Instance?.Register(_registryEntry);
     }
 
     /// <summary>Harvest some amount. Returns how much was actually taken.</summary>
@@ -64,5 +77,6 @@ public partial class ResourceNode : Node3D
     public override void _ExitTree()
     {
         ResourceManager.Instance?.Unregister(this);
+        if (_registryEntry != null) WorldObjectRegistry.Instance?.Unregister(_registryEntry);
     }
 }

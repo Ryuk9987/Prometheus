@@ -22,11 +22,16 @@ public partial class Animal : Node3D
 
     public bool IsDead => Health <= 0f;
 
+    private WorldObjectEntry _registryEntry;
+
     public override void _Ready()
     {
         _rng.Randomize();
         _wanderTarget = GlobalPosition;
         AnimalManager.Instance?.Register(this);
+        string icon = Type switch { AnimalType.Deer => "🦌", AnimalType.Boar => "🐗", _ => "🐇" };
+        _registryEntry = new WorldObjectEntry(this, WorldObjectKind.Animal, Type.ToString(), icon);
+        WorldObjectRegistry.Instance?.Register(_registryEntry);
     }
 
     public override void _Process(double delta)
@@ -114,5 +119,6 @@ public partial class Animal : Node3D
     public override void _ExitTree()
     {
         AnimalManager.Instance?.Unregister(this);
+        if (_registryEntry != null) WorldObjectRegistry.Instance?.Unregister(_registryEntry);
     }
 }

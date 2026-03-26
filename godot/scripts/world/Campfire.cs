@@ -24,10 +24,15 @@ public partial class Campfire : Node3D
 
     public static CampfireManager Manager => CampfireManager.Instance;
 
+    private WorldObjectEntry _registryEntry;
+
     public override void _Ready()
     {
         BuildVisuals();
         CampfireManager.Instance?.Register(this);
+        string label = WithStoneRing ? "Lagerfeuer mit Steinkranz" : "Lagerfeuer";
+        _registryEntry = new WorldObjectEntry(this, WorldObjectKind.Campfire, label, "🔥");
+        WorldObjectRegistry.Instance?.Register(_registryEntry);
         GD.Print($"[Campfire] Built at {GlobalPosition}");
     }
 
@@ -129,5 +134,6 @@ public partial class Campfire : Node3D
     public override void _ExitTree()
     {
         CampfireManager.Instance?.Unregister(this);
+        if (_registryEntry != null) WorldObjectRegistry.Instance?.Unregister(_registryEntry);
     }
 }

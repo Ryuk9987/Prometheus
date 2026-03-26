@@ -72,7 +72,12 @@ public partial class NpcInspector : CanvasLayer
             if (dist < closestDist) { closestDist = dist; closest = npc; }
         }
 
-        if (closest != null) Open(closest);
+        if (closest != null)
+        {
+            WorldInspector.Instance?.Close(); // close world inspector when NPC selected
+            Open(closest);
+            GetViewport().SetInputAsHandled();
+        }
     }
 
     public void Open(NpcEntity npc)

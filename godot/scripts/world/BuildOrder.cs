@@ -21,10 +21,16 @@ public partial class BuildOrder : Node3D
 
     public static BuildOrderManager Manager => BuildOrderManager.Instance;
 
+    private WorldObjectEntry _registryEntry;
+
     public override void _Ready()
     {
         BuildVisuals();
         BuildOrderManager.Instance?.Register(this);
+        var def = KnowledgeCatalog.Get(KnowledgeId);
+        _registryEntry = new WorldObjectEntry(this, WorldObjectKind.BuildOrder,
+            $"Bauauftrag: {def?.DisplayName ?? KnowledgeId}", def?.Icon ?? "🏗");
+        WorldObjectRegistry.Instance?.Register(_registryEntry);
     }
 
     public void Work(float amount)
@@ -124,5 +130,8 @@ public partial class BuildOrder : Node3D
     }
 
     public override void _ExitTree()
-        => BuildOrderManager.Instance?.Unregister(this);
+    {
+        BuildOrderManager.Instance?.Unregister(this);
+        if (_registryEntry != null) WorldObjectRegistry.Instance?.Unregister(_registryEntry);
+    }
 }

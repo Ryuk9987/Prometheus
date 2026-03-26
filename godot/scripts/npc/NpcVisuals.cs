@@ -137,9 +137,10 @@ public partial class NpcVisuals : Node3D
         AddTo(_rElbow, MakeCyl(0.055f, 0.24f), darkMat, 0, -0.12f);
         AddTo(_rElbow, MakeBox(0.09f, 0.065f, 0.065f), _skinMat, 0, -0.27f);
 
-        // Initial arm angle (rest position: slight outward)
-        _lShoulder.RotationDegrees = new Vector3(0, 0,  22);
-        _rShoulder.RotationDegrees = new Vector3(0, 0, -22);
+        // Initial arm angle: left arm splays left (-Z), right splays right (+Z)
+        // Character faces -Z, so left = -X direction needs Z=-22 to tilt outward
+        _lShoulder.RotationDegrees = new Vector3(0, 0, -22);
+        _rShoulder.RotationDegrees = new Vector3(0, 0,  22);
 
         // ── Legs: hip pivot → upper leg → knee pivot → lower leg → foot
         _lHip = Pivot(-HipW*w, HipY, 0);
@@ -249,8 +250,8 @@ public partial class NpcVisuals : Node3D
 
         // Arms (opposite swing)
         float arm = -sw * 22f;
-        if (_lShoulder != null) _lShoulder.RotationDegrees = new Vector3( arm, 0,  22f);
-        if (_rShoulder != null) _rShoulder.RotationDegrees = new Vector3(-arm, 0, -22f);
+        if (_lShoulder != null) _lShoulder.RotationDegrees = new Vector3( arm, 0, -22f);
+        if (_rShoulder != null) _rShoulder.RotationDegrees = new Vector3(-arm, 0,  22f);
 
         _bodyRoot.Position = new Vector3(0, Mathf.Abs(sw) * 0.012f, 0);
     }
@@ -267,8 +268,8 @@ public partial class NpcVisuals : Node3D
         LerpDeg(_rHip,       Vector3.Zero, 0.07f);
         LerpDeg(_lKnee,      Vector3.Zero, 0.07f);
         LerpDeg(_rKnee,      Vector3.Zero, 0.07f);
-        LerpDeg(_lShoulder,  new Vector3(0, 0,  22f), 0.07f);
-        LerpDeg(_rShoulder,  new Vector3(0, 0, -22f), 0.07f);
+        LerpDeg(_lShoulder,  new Vector3(0, 0, -22f), 0.07f);
+        LerpDeg(_rShoulder,  new Vector3(0, 0,  22f), 0.07f);
         LerpDeg(_lElbow,     Vector3.Zero, 0.07f);
         LerpDeg(_rElbow,     Vector3.Zero, 0.07f);
     }

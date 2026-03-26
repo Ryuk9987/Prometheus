@@ -53,15 +53,20 @@ public partial class NpcRoster : CanvasLayer
 
         foreach (Node c in _list.GetChildren()) c.QueueFree();
 
-        // ── Group 1: Player's followers (believers in original tribe "tribe_alpha")
+        // Player's tribe = Tribes[0] (the original tribe all NPCs start in)
+        var playerTribe = TribeManager.Instance?.Tribes.Count > 0
+            ? TribeManager.Instance.Tribes[0] : null;
+        string playerTribeName = playerTribe?.Name ?? "";
+
+        // ── Group 1: Player's followers (believers in original tribe)
         var followers = npcs
-            .Where(n => n.Belief.CanHearOracle && n.TribeId == "tribe_alpha")
+            .Where(n => n.Belief.CanHearOracle && n.TribeId == playerTribeName)
             .OrderByDescending(n => n.Belief.Belief)
             .ToList();
 
         // ── Group 2: Splinter believers (heard oracle but split off)
         var splinters = npcs
-            .Where(n => n.Belief.CanHearOracle && n.TribeId != "tribe_alpha")
+            .Where(n => n.Belief.CanHearOracle && n.TribeId != playerTribeName)
             .OrderBy(n => n.TribeId).ThenBy(n => n.NpcName)
             .ToList();
 
@@ -73,9 +78,16 @@ public partial class NpcRoster : CanvasLayer
 
         if (followers.Count > 0)
         {
-            _list.AddChild(SectionHeader($"🔮 DEINE ANHÄNGER  ({followers.Count})",
+            _list.AddChild(SectionHeader(
+                $"🔮 DEINE ANHÄNGER  ({followers.Count})   [{playerTribeName}]",
                 new Color(0.3f, 0.6f, 1f), new Color(0.06f, 0.1f, 0.2f)));
             foreach (var npc in followers) _list.AddChild(BuildRow(npc, PlayerRelation.Follower));
+        }
+        else
+        {
+            _list.AddChild(SectionHeader(
+                "🔮 DEINE ANHÄNGER  (0)   — niemand glaubt dir noch",
+                new Color(0.3f, 0.6f, 1f), new Color(0.06f, 0.1f, 0.2f)));
         }
 
         if (splinters.Count > 0)

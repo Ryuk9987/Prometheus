@@ -22,7 +22,8 @@ public partial class KnowledgeComponent : Node
         else
         {
             Knowledge[id] = new KnowledgeItem(id, depth, confidence) { SourceNpcId = sourceId };
-            GD.Print($"[Knowledge] {GetParent().Name} learned: {id} (depth:{depth:F2})");
+            string ownerName = (GetParent() is NpcEntity npc) ? npc.NpcName : GetParent().Name;
+            GD.Print($"[Knowledge] {ownerName} learned: {id} (depth:{depth:F2})");
         }
     }
 
@@ -58,8 +59,10 @@ public partial class KnowledgeComponent : Node
         float finalDepth      = Mathf.Clamp(transferred + distortion, 0f, 1f);
         float finalConfidence = item.Confidence * 0.75f; // confidence reduces when passed on
 
-        other.Learn(id, finalDepth, finalConfidence, GetParent().Name);
-        GD.Print($"[Knowledge] {GetParent().Name} taught {id} to {other.GetParent().Name} (depth:{finalDepth:F2})");
+        string teacherName = (GetParent() is NpcEntity t) ? t.NpcName : GetParent().Name;
+        string learnerName = (other.GetParent() is NpcEntity l) ? l.NpcName : other.GetParent().Name;
+        other.Learn(id, finalDepth, finalConfidence, teacherName);
+        GD.Print($"[Knowledge] {teacherName} taught {id} to {learnerName} (depth:{finalDepth:F2})");
     }
 
     public string Summary()

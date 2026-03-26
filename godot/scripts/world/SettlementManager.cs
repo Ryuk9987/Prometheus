@@ -75,7 +75,9 @@ public partial class SettlementManager : Node
             .Any(o => (o.KnowledgeId == "campfire" || o.KnowledgeId == "campfire_stone")
                       && o.GlobalPosition.DistanceTo(center) < 15f) ?? false;
         hasNearbyFire = hasNearbyFire || Count(BuildingType.Campfire) > 0 || hasPendingFire;
-        if (Has(knowledge, "fire", 0.1f) && !hasNearbyFire)
+        // Only place campfire BuildOrder if tribe has at least 1 Builder
+        bool hasBuilder = tribe.Members.Any(n => n.SocialRole == SocialRole.Builder);
+        if (Has(knowledge, "fire", 0.1f) && !hasNearbyFire && hasBuilder)
         {
             PlaceAutonomous(tribe, "campfire", BuildingType.Campfire, center, offset: Vector3.Zero);
             return;

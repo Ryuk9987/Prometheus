@@ -66,7 +66,7 @@ public partial class TribeSociety : Node
         int needLeader   = 1;
         int needHunters  = Mathf.Max(2, count / 5);
         int needGatherers= Mathf.Max(2, count / 5);
-        int needBuilders = count >= 5 ? Mathf.Max(1, count / 8) : 0;
+        int needBuilders = count >= 3 ? 1 : 0; // always 1 builder if enough members
         int needHealers  = count >= 8 ? 1 : 0;
         int needFarmers  = count >= 10 && HasTribeKnowledge(tribe, "farming", 0.3f) ? Mathf.Max(1, count / 10) : 0;
 

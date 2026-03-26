@@ -69,7 +69,7 @@ public partial class WellbeingComponent : Node
     {
         // Base: world temperature (day = warm, night = cold)
         bool isNight = DayCycle.Instance?.IsNight ?? false;
-        float hour   = DayCycle.Instance?.CurrentHour ?? 12f;
+        float hour   = DayCycle.Instance?.Hour ?? 12f;
         _worldTemp   = isNight ? 0.2f : (hour >= 10f && hour <= 16f ? 0.75f : 0.5f);
 
         float temp = _worldTemp;

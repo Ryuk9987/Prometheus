@@ -83,13 +83,16 @@ public partial class BlueprintEditor : CanvasLayer
         topBar.AddChild(MakeButton("✕ Schließen", Close));
         _root.AddChild(topBar);
 
-        // Main HBox
+        // Main HBox — fills the rest below the top bar
+        var mainMargin = new MarginContainer();
+        mainMargin.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        mainMargin.AddThemeConstantOverride("margin_top", 44);
+        _root.AddChild(mainMargin);
+
         var hbox = new HBoxContainer();
         hbox.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         hbox.AddThemeConstantOverride("separation", 0);
-        hbox.Position = new Vector2(0, 44);
-        hbox.Size     = new Vector2(0, -44);
-        _root.AddChild(hbox);
+        mainMargin.AddChild(hbox);
 
         // Canvas
         _drawCanvas = new DrawCanvas();
@@ -105,18 +108,22 @@ public partial class BlueprintEditor : CanvasLayer
         var rStyle = new StyleBoxFlat(); rStyle.BgColor = new Color(0.07f,0.09f,0.15f,1f);
         rightPanel.AddThemeStyleboxOverride("panel", rStyle);
 
+        // scroll → margin → vbox  (correct hierarchy, no double-parent)
         var scroll = new ScrollContainer();
         scroll.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         scroll.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
 
-        var vbox = new VBoxContainer();
-        vbox.AddThemeConstantOverride("separation", 4);
         var margin = new MarginContainer();
-        margin.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        margin.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
         foreach (var side in new[]{"left","right","top","bottom"})
             margin.AddThemeConstantOverride($"margin_{side}", 8);
+
+        var vbox = new VBoxContainer();
+        vbox.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        vbox.AddThemeConstantOverride("separation", 4);
+
         margin.AddChild(vbox);
-        scroll.AddChild(vbox);
+        scroll.AddChild(margin);
         rightPanel.AddChild(scroll);
         hbox.AddChild(rightPanel);
 

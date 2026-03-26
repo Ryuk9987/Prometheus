@@ -48,7 +48,7 @@ public partial class NpcRoster : CanvasLayer
         int total    = npcs.Count;
         int tasks    = npcs.Count(n => n.Cooperation.HasTask);
         int believers = npcs.Count(n => n.Belief.CanHearOracle);
-        int tribes   = TribeManager.Instance?.AllTribes.Count ?? 0;
+        int tribes   = TribeManager.Instance?.Tribes.Count ?? 0;
 
         _header.Text = $"PROMETHEUS — Bevölkerung   👤 {total}   🔮 {believers} Anhänger   🏕 {tribes} Stämme    [TAB schließen]";
 

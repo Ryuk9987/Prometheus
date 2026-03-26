@@ -10,6 +10,8 @@
 [ext_resource type="Script" path="res://scripts/npc/CooperationComponent.cs" id="8"]
 [ext_resource type="Script" path="res://scripts/npc/TabletSeekBehavior.cs" id="9"]
 [ext_resource type="Script" path="res://scripts/npc/CampfireBehavior.cs" id="10"]
+[ext_resource type="Script" path="res://scripts/npc/BuildWorkerBehavior.cs" id="11"]
+[ext_resource type="Script" path="res://scripts/npc/AutonomousDiscovery.cs" id="12"]
 
 [sub_resource type="CapsuleMesh" id="CapsuleMesh_1"]
 radius = 0.3
@@ -71,3 +73,9 @@ script = ExtResource("9")
 
 [node name="CampfireBehavior" type="Node" parent="."]
 script = ExtResource("10")
+
+[node name="BuildWorkerBehavior" type="Node" parent="."]
+script = ExtResource("11")
+
+[node name="AutonomousDiscovery" type="Node" parent="."]
+script = ExtResource("12")

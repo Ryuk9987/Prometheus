@@ -119,7 +119,7 @@ public partial class CampfireBehavior : Node
                 if (!_hasSite)
                 {
                     _buildSite = _owner.GlobalPosition + new Vector3(
-                        GD.RandRange(-3f, 3f), 0, GD.RandRange(-3f, 3f));
+                        (float)GD.RandRange(-3.0, 3.0), 0, (float)GD.RandRange(-3.0, 3.0));
                     _hasSite = true;
                 }
                 _state = BState.CarryWood;

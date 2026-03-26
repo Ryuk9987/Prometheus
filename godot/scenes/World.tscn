@@ -109,6 +109,9 @@ script = ExtResource("16")
 [node name="DayCycle" type="Node" parent="."]
 script = ExtResource("17")
 
+[node name="WorldObjectRegistry" type="Node" parent="."]
+script = ExtResource("22")
+
 [node name="NatureManager" type="Node3D" parent="."]
 script = ExtResource("24")
 
@@ -120,9 +123,6 @@ script = ExtResource("20")
 
 [node name="PlayerBuildMenu" type="CanvasLayer" parent="."]
 script = ExtResource("19")
-
-[node name="WorldObjectRegistry" type="Node" parent="."]
-script = ExtResource("22")
 
 [node name="NpcInspector" type="CanvasLayer" parent="."]
 script = ExtResource("21")

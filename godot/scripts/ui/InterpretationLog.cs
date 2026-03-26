@@ -26,6 +26,7 @@ public partial class InterpretationLog : CanvasLayer
 
     public override void _Ready()
     {
+        _panel = new Panel();
         _panel.SetAnchorsPreset(Control.LayoutPreset.BottomRight);
         _panel.Position = new Vector2(-420, -260);
         _panel.Size     = new Vector2(400, 240);

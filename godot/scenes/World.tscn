@@ -12,6 +12,8 @@
 [ext_resource type="Script" path="res://scripts/ai/TaskManager.cs" id="11"]
 [ext_resource type="PackedScene" path="res://scenes/OracleTablet.tscn" id="12"]
 [ext_resource type="Script" path="res://scripts/ui/BlueprintEditor.cs" id="13"]
+[ext_resource type="Script" path="res://scripts/camera/CameraFollow.cs" id="15"]
+[ext_resource type="Script" path="res://scripts/world/CampfireManager.cs" id="16"]
 [ext_resource type="Script" path="res://scripts/ui/InterpretationLog.cs" id="14"]
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_1"]
@@ -67,6 +69,9 @@ shape = SubResource("BoxShape3D_1")
 [node name="CameraRig" type="Node3D" parent="."]
 script = ExtResource("2")
 
+[node name="CameraFollow" type="Node" parent="CameraRig"]
+script = ExtResource("15")
+
 [node name="Camera3D" type="Camera3D" parent="CameraRig"]
 position = Vector3(0, 30, 21)
 
@@ -89,6 +94,9 @@ script = ExtResource("10")
 
 [node name="TaskManager" type="Node" parent="."]
 script = ExtResource("11")
+
+[node name="CampfireManager" type="Node" parent="."]
+script = ExtResource("16")
 
 [node name="WorldGenerator" type="Node3D" parent="."]
 script = ExtResource("9")

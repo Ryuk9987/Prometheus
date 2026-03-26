@@ -154,6 +154,15 @@ public partial class DrawCanvas : Control
 
             if (mb.ButtonIndex == MouseButton.Right && mb.Pressed)
             {
+                // RMB cancels pending stamp first
+                if (_pendingStamp != null)
+                {
+                    _pendingStamp = null;
+                    _mode = CanvasMode.Draw;
+                    Editor?._UpdateStatus("Platzierung abgebrochen.");
+                    QueueRedraw(); return true;
+                }
+                // Otherwise delete stamp under cursor
                 var hit = HitTest(local);
                 if (hit != null) { _placed.Remove(hit); QueueRedraw(); }
                 return true;

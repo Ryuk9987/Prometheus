@@ -18,9 +18,10 @@ public partial class NpcEntity : Node3D
     public KnowledgeComponent   Knowledge   { get; private set; }
     public SocialComponent      Social      { get; private set; }
     public BeliefComponent      Belief      { get; private set; }
-    public SurvivalBehavior      Survival     { get; private set; }
-    public TabletSeekBehavior    TabletSeek   { get; private set; }
-    public CooperationComponent  Cooperation  { get; private set; }
+    public SurvivalBehavior      Survival        { get; private set; }
+    public TabletSeekBehavior    TabletSeek      { get; private set; }
+    public CooperationComponent  Cooperation     { get; private set; }
+    public CampfireBehavior      CampfireBuilder { get; private set; }
 
     private Label3D               _nameLabel;
     private RandomNumberGenerator _rng = new();
@@ -38,9 +39,10 @@ public partial class NpcEntity : Node3D
         Knowledge   = GetNode<KnowledgeComponent>("KnowledgeComponent");
         Social      = GetNode<SocialComponent>("SocialComponent");
         Belief      = GetNode<BeliefComponent>("BeliefComponent");
-        Survival     = GetNode<SurvivalBehavior>("SurvivalBehavior");
-        TabletSeek   = GetNode<TabletSeekBehavior>("TabletSeekBehavior");
-        Cooperation  = GetNode<CooperationComponent>("CooperationComponent");
+        Survival        = GetNode<SurvivalBehavior>("SurvivalBehavior");
+        TabletSeek      = GetNode<TabletSeekBehavior>("TabletSeekBehavior");
+        Cooperation     = GetNode<CooperationComponent>("CooperationComponent");
+        CampfireBuilder = GetNode<CampfireBehavior>("CampfireBehavior");
         _nameLabel   = GetNode<Label3D>("Label3D");
 
         _nameLabel.Text = NpcName;
@@ -73,7 +75,10 @@ public partial class NpcEntity : Node3D
         // Priority 2: Oracle Tablet (believers seek knowledge)
         if (TabletSeek.Tick(delta)) return;
 
-        // Priority 3: Community task (hunting, gathering, building)
+        // Priority 3: Build campfire (if knows fire)
+        if (CampfireBuilder.Tick(delta)) return;
+
+        // Priority 4: Community task (hunting, gathering)
         if (Cooperation.Tick(delta)) return;
 
         // Priority 3: Wander

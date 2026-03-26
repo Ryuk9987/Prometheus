@@ -38,31 +38,41 @@ public partial class NpcVisuals : Node3D
     private Color _clothColor  = new Color(0.25f, 0.35f, 0.45f);
     private Color _hairColor   = new Color(0.2f,  0.15f, 0.1f);
 
+    // ── Animation state ───────────────────────────────────────────────────
+    private Node3D _leftUpperArm, _rightUpperArm;
+    private Node3D _leftUpperLeg, _rightUpperLeg;
+    private Node3D _leftLowerLeg, _rightLowerLeg;
+    private Node3D _headNode;
+
+    private double _animTime   = 0;
+    private Vector3 _lastPos   = Vector3.Zero;
+    private float _walkSpeed   = 0f;
+    private const float Scale  = 0.52f; // world scale
+
     public override void _Ready()
     {
         _owner = GetParent<NpcEntity>();
 
-        // Remove default capsule if exists
         var oldMesh = _owner.GetNodeOrNull<MeshInstance3D>("MeshInstance3D");
         oldMesh?.QueueFree();
-        var oldCapsule = _owner.GetNodeOrNull<CollisionShape3D>("CollisionShape3D");
-        // Keep collision shape
 
         _bodyRoot = new Node3D();
         _bodyRoot.Name = "BodyRoot";
+        _bodyRoot.Scale = Vector3.One * Scale;
         AddChild(_bodyRoot);
 
+        _lastPos = _owner.GlobalPosition;
+        _animTime = GD.RandRange(0.0, Mathf.Tau); // stagger animations
         BuildHumanoid();
     }
 
     public override void _Process(double delta)
     {
-        // Update tribe color + role accent periodically
         if (_owner == null) return;
 
+        // Tribe color live-update
         var tribe = TribeManager.Instance?.GetTribe(_owner);
         var newTribeColor = tribe?.Color ?? new Color(0.3f, 0.55f, 0.8f);
-
         if (!newTribeColor.IsEqualApprox(_tribeColor))
         {
             _tribeColor = newTribeColor;
@@ -70,6 +80,70 @@ public partial class NpcVisuals : Node3D
         }
 
         UpdateRoleAccent();
+        Animate(delta);
+    }
+
+    // ── Animation ─────────────────────────────────────────────────────────
+    private void Animate(double delta)
+    {
+        _animTime += delta;
+
+        // Measure movement speed
+        var newPos  = _owner.GlobalPosition;
+        _walkSpeed  = Mathf.Lerp(_walkSpeed,
+            (float)(newPos - _lastPos).Length() / (float)delta, 0.2f);
+        _lastPos    = newPos;
+
+        bool moving = _walkSpeed > 0.05f;
+
+        if (moving)
+            AnimateWalk();
+        else
+            AnimateIdle();
+    }
+
+    private void AnimateWalk()
+    {
+        float t  = (float)_animTime * 2.5f * Mathf.Tau;
+        float sw = Mathf.Sin(t);
+        float swDeg = sw * 35f;
+
+        SetRot(_leftUpperLeg,   swDeg,  0f);
+        SetRot(_rightUpperLeg, -swDeg,  0f);
+        SetRot(_leftLowerLeg,   Mathf.Max(0f, sw) * 18f, 0f);
+        SetRot(_rightLowerLeg,  Mathf.Max(0f,-sw) * 18f, 0f);
+        SetRot(_leftUpperArm,  -swDeg * 0.7f,  20f);
+        SetRot(_rightUpperArm,  swDeg * 0.7f, -20f);
+
+        if (_bodyRoot != null)
+            _bodyRoot.Position = new Vector3(0, Mathf.Abs(sw) * 0.012f, 0);
+    }
+
+    private void AnimateIdle()
+    {
+        float t      = (float)_animTime * 0.8f * Mathf.Tau;
+        float breath = Mathf.Sin(t) * 0.005f;
+        if (_bodyRoot != null) _bodyRoot.Position = new Vector3(0, breath, 0);
+
+        LerpRot(_leftUpperArm,  0f,  20f, 0.06f);
+        LerpRot(_rightUpperArm, 0f, -20f, 0.06f);
+        LerpRot(_leftUpperLeg,  0f,  0f,  0.06f);
+        LerpRot(_rightUpperLeg, 0f,  0f,  0.06f);
+        LerpRot(_leftLowerLeg,  0f,  0f,  0.06f);
+        LerpRot(_rightLowerLeg, 0f,  0f,  0.06f);
+    }
+
+    private static void SetRot(Node3D node, float xDeg, float zDeg)
+    {
+        if (node == null) return;
+        node.Rotation = new Vector3(Mathf.DegToRad(xDeg), node.Rotation.Y, Mathf.DegToRad(zDeg));
+    }
+
+    private static void LerpRot(Node3D node, float xDeg, float zDeg, float t)
+    {
+        if (node == null) return;
+        var target = new Vector3(Mathf.DegToRad(xDeg), node.Rotation.Y, Mathf.DegToRad(zDeg));
+        node.Rotation = node.Rotation.Lerp(target, t);
     }
 
     // ── Build humanoid ────────────────────────────────────────────────────
@@ -101,29 +175,36 @@ public partial class NpcVisuals : Node3D
         var hipMat = Mat(Darken(_tribeColor, 0.3f));
         Part(MakeBox(0.36f, 0.18f, 0.22f), hipMat, new Vector3(0, 0.95f, 0));
 
-        // ── Arms
-        var armMat = Mat(Darken(_tribeColor, 0.15f));
+        // ── Arms (pivot at shoulder for animation)
+        var armMat  = Mat(Darken(_tribeColor, 0.15f));
         var handMat = _skinMat;
-        // Left arm
-        Part(MakeCylinder(0.07f, 0.28f), armMat,  new Vector3(-0.27f, 1.27f, 0), rotZ:  20f);
-        Part(MakeCylinder(0.06f, 0.26f), armMat,  new Vector3(-0.32f, 0.97f, 0), rotZ:  10f);
-        Part(MakeBox(0.10f, 0.07f, 0.07f), handMat, new Vector3(-0.35f, 0.82f, 0));
-        // Right arm
-        Part(MakeCylinder(0.07f, 0.28f), armMat,  new Vector3( 0.27f, 1.27f, 0), rotZ: -20f);
-        Part(MakeCylinder(0.06f, 0.26f), armMat,  new Vector3( 0.32f, 0.97f, 0), rotZ: -10f);
-        Part(MakeBox(0.10f, 0.07f, 0.07f), handMat, new Vector3( 0.35f, 0.82f, 0));
 
-        // ── Legs
+        // ── Arms (pivot at shoulder)
+        Pivot2(-0.26f, 1.44f, 0, armMat, MakeCylinder(0.07f, 0.28f),
+               new Vector3(0, -0.14f, 0), rotZ: 20f, out _leftUpperArm);
+        Part(MakeCylinder(0.06f, 0.26f), armMat,    new Vector3(-0.30f, 0.97f, 0), rotZ: 10f);
+        Part(MakeBox(0.10f, 0.07f, 0.07f), handMat, new Vector3(-0.33f, 0.82f, 0));
+
+        Pivot2( 0.26f, 1.44f, 0, armMat, MakeCylinder(0.07f, 0.28f),
+                new Vector3(0, -0.14f, 0), rotZ: -20f, out _rightUpperArm);
+        Part(MakeCylinder(0.06f, 0.26f), armMat,    new Vector3( 0.30f, 0.97f, 0), rotZ: -10f);
+        Part(MakeBox(0.10f, 0.07f, 0.07f), handMat, new Vector3( 0.33f, 0.82f, 0));
+
+        // ── Legs (pivot at hip)
         var legMat  = Mat(new Color(0.2f, 0.22f, 0.28f));
         var bootMat = Mat(new Color(0.25f, 0.18f, 0.12f));
-        // Left leg
-        Part(MakeCylinder(0.09f, 0.34f), legMat,  new Vector3(-0.12f, 0.68f, 0));
-        Part(MakeCylinder(0.08f, 0.30f), legMat,  new Vector3(-0.12f, 0.31f, 0));
-        Part(MakeBox(0.12f, 0.08f, 0.18f), bootMat, new Vector3(-0.12f, 0.09f, 0.03f));
-        // Right leg
-        Part(MakeCylinder(0.09f, 0.34f), legMat,  new Vector3( 0.12f, 0.68f, 0));
-        Part(MakeCylinder(0.08f, 0.30f), legMat,  new Vector3( 0.12f, 0.31f, 0));
-        Part(MakeBox(0.12f, 0.08f, 0.18f), bootMat, new Vector3( 0.12f, 0.09f, 0.03f));
+
+        Pivot2(-0.12f, 0.86f, 0, legMat, MakeCylinder(0.09f, 0.34f),
+               new Vector3(0, -0.17f, 0), out _leftUpperLeg);
+        Pivot2(-0.12f, 0.50f, 0, legMat, MakeCylinder(0.08f, 0.30f),
+               new Vector3(0, -0.15f, 0), out _leftLowerLeg);
+        Part(MakeBox(0.13f, 0.08f, 0.18f), bootMat, new Vector3(-0.12f, 0.09f, 0.03f));
+
+        Pivot2( 0.12f, 0.86f, 0, legMat, MakeCylinder(0.09f, 0.34f),
+                new Vector3(0, -0.17f, 0), out _rightUpperLeg);
+        Pivot2( 0.12f, 0.50f, 0, legMat, MakeCylinder(0.08f, 0.30f),
+                new Vector3(0, -0.15f, 0), out _rightLowerLeg);
+        Part(MakeBox(0.13f, 0.08f, 0.18f), bootMat, new Vector3( 0.12f, 0.09f, 0.03f));
 
         // Name label — float above head
         var nameLabel = _owner.GetNodeOrNull<Label3D>("Label3D");
@@ -211,6 +292,21 @@ public partial class NpcVisuals : Node3D
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────
+    private MeshInstance3D Pivot2(float px, float py, float pz,
+        StandardMaterial3D mat, Mesh mesh, Vector3 meshOffset,
+        float rotX = 0, float rotZ = 0, out Node3D pivot_out)
+    {
+        pivot_out = new Node3D();
+        pivot_out.Position = new Vector3(px, py, pz);
+        if (rotZ != 0) pivot_out.RotateZ(Mathf.DegToRad(rotZ));
+        _bodyRoot.AddChild(pivot_out);
+        var mi = new MeshInstance3D();
+        mi.Mesh = mesh; mi.Position = meshOffset;
+        mesh.SurfaceSetMaterial(0, mat);
+        pivot_out.AddChild(mi);
+        return mi;
+    }
+
     private MeshInstance3D Part(Mesh mesh, StandardMaterial3D mat,
         Vector3 pos, float rotX = 0, float rotZ = 0)
     {

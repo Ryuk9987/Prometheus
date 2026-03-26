@@ -99,50 +99,66 @@ public partial class DrawCanvas : Control
     }
 
     // ── Input ─────────────────────────────────────────────────────────────
-    public void ForwardInput(InputEvent @event)
+    /// <summary>
+    /// Returns ESC-consumed = true when ESC only cancelled stamp/grab (not close editor).
+    /// Returns false when ESC should propagate to close the editor.
+    /// </summary>
+    public bool ForwardInput(InputEvent @event)
     {
         if (@event is InputEventKey k && k.Pressed && !k.Echo)
         {
             if (k.Keycode == Key.Escape)
             {
-                _pendingStamp = null; _grabbed = null;
-                _mode = CanvasMode.Draw;
-                Editor?._UpdateStatus("Modus: Zeichnen");
-                QueueRedraw(); return;
+                if (_pendingStamp != null)
+                {
+                    // ESC cancels pending stamp first — don't close editor
+                    _pendingStamp = null;
+                    _mode = CanvasMode.Draw;
+                    Editor?._UpdateStatus("Platzierung abgebrochen. Zeichnen aktiv.");
+                    QueueRedraw();
+                    return true; // consumed — don't close
+                }
+                if (_mode == CanvasMode.Grab)
+                {
+                    _grabbed = null;
+                    _mode = CanvasMode.Draw;
+                    Editor?._UpdateStatus("Grab-Modus beendet.");
+                    QueueRedraw();
+                    return true; // consumed
+                }
+                return false; // propagate → editor handles save dialog
             }
-            // R = rotate grabbed stamp
             if (k.Keycode == Key.R && _grabbed != null)
             {
-                _grabbed.Rotation += Mathf.Pi / 8f; // 22.5° steps
-                QueueRedraw(); return;
+                _grabbed.Rotation += Mathf.Pi / 8f;
+                QueueRedraw(); return true;
             }
-            if (k.Keycode == Key.Z && k.CtrlPressed) { Undo(); return; }
+            if (k.Keycode == Key.Z && k.CtrlPressed) { Undo(); return true; }
         }
 
         if (@event is InputEventMouseButton mb)
         {
-            // ── Zoom ──────────────────────────────────────────────────
-            if (mb.ButtonIndex == MouseButton.WheelUp)
-                { Zoom(+0.15f); Editor?.UpdateZoomLabel(); return; }
-            if (mb.ButtonIndex == MouseButton.WheelDown)
-                { Zoom(-0.15f); Editor?.UpdateZoomLabel(); return; }
+            // Convert viewport → local DrawCanvas coordinates
+            var local = GetLocalMousePosition();
 
-            // ── Pan ───────────────────────────────────────────────────
+            if (mb.ButtonIndex == MouseButton.WheelUp)
+                { Zoom(+0.15f); Editor?.UpdateZoomLabel(); return true; }
+            if (mb.ButtonIndex == MouseButton.WheelDown)
+                { Zoom(-0.15f); Editor?.UpdateZoomLabel(); return true; }
+
             if (mb.ButtonIndex == MouseButton.Middle)
             {
                 _panning = mb.Pressed;
-                _panStart = mb.Position; _panOffsetStart = _panOffset; return;
+                _panStart = local; _panOffsetStart = _panOffset; return true;
             }
 
-            // ── Right click = delete stamp ─────────────────────────────
             if (mb.ButtonIndex == MouseButton.Right && mb.Pressed)
             {
-                var hit = HitTest(mb.Position);
+                var hit = HitTest(local);
                 if (hit != null) { _placed.Remove(hit); QueueRedraw(); }
-                return;
+                return true;
             }
 
-            // ── Left click ─────────────────────────────────────────────
             if (mb.ButtonIndex == MouseButton.Left)
             {
                 if (mb.Pressed)
@@ -150,26 +166,24 @@ public partial class DrawCanvas : Control
                     switch (_mode)
                     {
                         case CanvasMode.Stamp:
-                            PlaceStamp(mb.Position, mb.ShiftPressed);
-                            return;
-
+                            PlaceStamp(local, mb.ShiftPressed);
+                            return true;
                         case CanvasMode.Grab:
-                            var hit = HitTest(mb.Position);
+                            var hit = HitTest(local);
                             if (hit != null)
                             {
-                                _grabbed   = hit;
-                                _grabOffset = ScreenToWorld(mb.Position) - hit.Position;
+                                _grabbed    = hit;
+                                _grabOffset = ScreenToWorld(local) - hit.Position;
                             }
-                            return;
-
+                            return true;
                         case CanvasMode.Draw:
                             _drawingStroke = true;
                             _currentStroke = new DrawnStroke(_tool, _color, _width);
-                            _currentStroke.Points.Add(ScreenToWorld(mb.Position));
-                            return;
+                            _currentStroke.Points.Add(ScreenToWorld(local));
+                            return true;
                     }
                 }
-                else // released
+                else
                 {
                     _grabbed = null;
                     if (_drawingStroke)
@@ -184,49 +198,54 @@ public partial class DrawCanvas : Control
 
         if (@event is InputEventMouseMotion mm)
         {
+            var local = GetLocalMousePosition();
+
             if (_panning)
             {
-                _panOffset = _panOffsetStart + (mm.Position - _panStart);
-                QueueRedraw(); return;
+                _panOffset = _panOffsetStart + (local - _panStart);
+                QueueRedraw(); return true;
             }
-
             if (_grabbed != null)
             {
-                _grabbed.Position = ScreenToWorld(mm.Position) - _grabOffset;
-                QueueRedraw(); return;
+                _grabbed.Position = ScreenToWorld(local) - _grabOffset;
+                QueueRedraw(); return true;
             }
-
             if (_drawingStroke && _currentStroke != null)
             {
-                var wp = ScreenToWorld(mm.Position);
+                var wp = ScreenToWorld(local);
                 if (_tool == DrawTool.Freehand) _currentStroke.Points.Add(wp);
                 else
                 {
                     if (_currentStroke.Points.Count > 1) _currentStroke.Points.RemoveAt(_currentStroke.Points.Count-1);
                     _currentStroke.Points.Add(wp);
                 }
-                QueueRedraw(); return;
+                QueueRedraw(); return true;
             }
-
-            // Redraw for cursor preview
             if (_pendingStamp != null) QueueRedraw();
         }
+        return false;
     }
 
-    private void PlaceStamp(Vector2 screenPos, bool shift)
+    private void PlaceStamp(Vector2 localPos, bool shift)
     {
         if (_pendingStamp == null) return;
-        var world = ScreenToWorld(screenPos);
-        _placed.Add(new PlacedStamp { StampId = _pendingStamp.Id, Position = world, Scale = 1f });
+        _placed.Add(new PlacedStamp {
+            StampId  = _pendingStamp.Id,
+            Position = ScreenToWorld(localPos),
+            Scale    = 1f
+        });
         QueueRedraw();
 
         if (!shift)
         {
             _pendingStamp = null;
             _mode = CanvasMode.Draw;
-            Editor?._UpdateStatus("Stamp platziert.");
+            Editor?._UpdateStatus("Platziert. Wähle weiteres Objekt oder zeichne.");
         }
-        // else keep pending for another placement
+        else
+        {
+            Editor?._UpdateStatus($"Shift: '{_pendingStamp.Label}' nochmals platzieren — ESC zum Beenden.");
+        }
     }
 
     // ── Coordinate helpers ─────────────────────────────────────────────────

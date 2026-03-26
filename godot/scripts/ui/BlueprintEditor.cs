@@ -14,6 +14,7 @@ public partial class BlueprintEditor : CanvasLayer
     private Label          _zoomLabel;
     public  Label          _statusLabel;
     private bool           _open = false;
+    private Panel          _saveDialog = null;
 
     public override void _Ready()
     {
@@ -25,12 +26,94 @@ public partial class BlueprintEditor : CanvasLayer
     {
         if (@event is InputEventKey k && k.Pressed && !k.Echo)
         {
-            if (k.Keycode == Key.F)                { ToggleOpen(); return; }
-            if (k.Keycode == Key.Escape && _open)  { Close(); return; }
-            if (_open && k.Keycode == Key.Z && k.CtrlPressed) { _drawCanvas?.Undo(); return; }
-            if (_open && k.Keycode == Key.G) { _drawCanvas?.EnterGrabMode(); return; }
+            if (k.Keycode == Key.F && !_open)  { Open(); return; }
+            if (k.Keycode == Key.F && _open)   { AskSaveAndClose(); return; }
+            if (k.Keycode == Key.G && _open)   { _drawCanvas?.EnterGrabMode(); return; }
+            if (k.Keycode == Key.Z && _open && k.CtrlPressed) { _drawCanvas?.Undo(); return; }
+
+            if (k.Keycode == Key.Escape && _open)
+            {
+                // First let canvas handle ESC (cancel stamp / grab)
+                if (_drawCanvas != null && _drawCanvas.ForwardInput(@event))
+                    return; // canvas consumed it
+                // Nothing active — ask save
+                AskSaveAndClose();
+                return;
+            }
         }
         if (_open) _drawCanvas?.ForwardInput(@event);
+    }
+
+    private void AskSaveAndClose()
+    {
+        // If canvas is empty, close directly
+        bool hasContent = (_drawCanvas?.GetPlacedStamps()?.Count > 0)
+                       || (_drawCanvas?.GetStrokes()?.Count > 0);
+        if (!hasContent) { Close(); return; }
+
+        // Show save dialog
+        if (_saveDialog != null) return; // already showing
+
+        _saveDialog = new Panel();
+        _saveDialog.SetAnchorsPreset(Control.LayoutPreset.Center);
+        _saveDialog.Size = new Vector2(320, 120);
+        _saveDialog.Position = new Vector2(-160, -60);
+
+        var style = new StyleBoxFlat();
+        style.BgColor      = new Color(0.1f, 0.12f, 0.2f, 0.98f);
+        style.BorderColor  = new Color(0.4f, 0.7f, 1f);
+        style.BorderWidthBottom = style.BorderWidthTop =
+        style.BorderWidthLeft   = style.BorderWidthRight = 2;
+        _saveDialog.AddThemeStyleboxOverride("panel", style);
+
+        var vbox = new VBoxContainer();
+        vbox.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        var margin = new MarginContainer();
+        margin.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        margin.AddThemeConstantOverride("margin_left",   16);
+        margin.AddThemeConstantOverride("margin_right",  16);
+        margin.AddThemeConstantOverride("margin_top",    14);
+        margin.AddThemeConstantOverride("margin_bottom", 14);
+
+        var lbl = new Label();
+        lbl.Text = "Zeichnung ans Orakel-Tablet senden?";
+        lbl.AutowrapMode = TextServer.AutowrapMode.Word;
+        lbl.AddThemeColorOverride("font_color", new Color(0.9f, 0.9f, 1f));
+        vbox.AddChild(lbl);
+
+        vbox.AddChild(new HSeparator());
+
+        var btnRow = new HBoxContainer();
+        var saveBtn = new Button(); saveBtn.Text = "✓ Senden & Schließen";
+        saveBtn.Pressed += () => { CloseSaveDialog(); Close(); };
+        btnRow.AddChild(saveBtn);
+
+        var discardBtn = new Button(); discardBtn.Text = "✕ Verwerfen";
+        discardBtn.Pressed += () => { CloseSaveDialog(); CloseWithoutSave(); };
+        btnRow.AddChild(discardBtn);
+
+        var cancelBtn = new Button(); cancelBtn.Text = "Abbrechen";
+        cancelBtn.Pressed += () => CloseSaveDialog();
+        btnRow.AddChild(cancelBtn);
+
+        vbox.AddChild(btnRow);
+        margin.AddChild(vbox);
+        _saveDialog.AddChild(margin);
+        _root.AddChild(_saveDialog);
+    }
+
+    private void CloseSaveDialog()
+    {
+        _saveDialog?.QueueFree();
+        _saveDialog = null;
+    }
+
+    private void CloseWithoutSave()
+    {
+        _drawCanvas?.Clear();
+        OracleTablet.Instance?.ClearTablet();
+        _open = false;
+        _root.Visible = false;
     }
 
     private void ToggleOpen() { if (_open) Close(); else Open(); }

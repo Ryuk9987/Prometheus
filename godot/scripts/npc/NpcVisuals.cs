@@ -57,12 +57,14 @@ public partial class NpcVisuals : Node3D
         oldMesh?.QueueFree();
 
         _bodyRoot = new Node3D();
-        _bodyRoot.Name = "BodyRoot";
+        _bodyRoot.Name  = "BodyRoot";
         _bodyRoot.Scale = Vector3.One * NpcScale;
+        // Offset so feet touch the ground (NpcEntity is at Y=0.5 above terrain)
+        _bodyRoot.Position = new Vector3(0, -0.5f, 0);
         AddChild(_bodyRoot);
 
-        _lastPos = _owner.GlobalPosition;
-        _animTime = GD.RandRange(0.0, Mathf.Tau); // stagger animations
+        _lastPos   = _owner.GlobalPosition;
+        _animTime  = GD.RandRange(0.0, Mathf.Tau);
         BuildHumanoid();
     }
 
@@ -88,15 +90,25 @@ public partial class NpcVisuals : Node3D
     {
         _animTime += delta;
 
-        // Measure movement speed
-        var newPos  = _owner.GlobalPosition;
-        _walkSpeed  = Mathf.Lerp(_walkSpeed,
-            (float)(newPos - _lastPos).Length() / (float)delta, 0.2f);
-        _lastPos    = newPos;
+        var  curPos  = _owner.GlobalPosition;
+        var  movement = curPos - _lastPos;
+        float moved  = (float)movement.Length();
+        float speed  = (float)delta > 0.0001 ? moved / (float)delta : 0f;
+        _walkSpeed   = Mathf.Lerp(_walkSpeed, speed, 0.25f);
 
-        bool moving = _walkSpeed > 0.05f;
+        // Rotate to face movement direction (smooth)
+        var flatDir = new Vector3(movement.X, 0, movement.Z);
+        if (flatDir.LengthSquared() > 0.00001f)
+        {
+            float targetY = Mathf.Atan2(-flatDir.X, -flatDir.Z);
+            float curY    = _owner.Rotation.Y;
+            _owner.Rotation = new Vector3(0,
+                Mathf.LerpAngle(curY, targetY, 0.18f), 0);
+        }
 
-        if (moving)
+        _lastPos = curPos;
+
+        if (_walkSpeed > 0.3f)
             AnimateWalk();
         else
             AnimateIdle();

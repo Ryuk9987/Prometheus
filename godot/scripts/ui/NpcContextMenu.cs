@@ -155,7 +155,7 @@ public partial class NpcContextMenu : CanvasLayer
         // TODO: create actual item in future iteration
     }
 
-    public void Hide()
+    public new void Hide()
     {
         _visible = false;
         _panel.Visible = false;

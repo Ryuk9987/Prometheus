@@ -279,7 +279,7 @@ public partial class NatureObject : Node3D
         NatureObjectType.RockSmall => 0.4f,
         NatureObjectType.RockLarge => 0.8f,
         NatureObjectType.WaterSource => 0.05f,
-        NatureObjectType.Stump      => 0.3f,
+        _ when State == GrowthState.Stump => 0.3f,
         _ => 0.3f
     };
 

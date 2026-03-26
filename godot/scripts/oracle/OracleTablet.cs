@@ -120,6 +120,7 @@ public partial class OracleTablet : Node3D
 
     // Current composition (stamps + strokes)
     private List<PlacedStamp> _currentStamps;
+    public  Composition       LastComposition { get; private set; }
 
     public void SetComposition(List<PlacedStamp> stamps, List<DrawnStroke> strokes)
     {
@@ -135,7 +136,8 @@ public partial class OracleTablet : Node3D
         TriggerFlash();
 
         var comp = CompositionAnalyzer.Analyze(stamps ?? new List<PlacedStamp>(), strokes);
-        GD.Print($"[OracleTablet] Composition: '{comp.Description}' → idea: {comp.PrimaryIdea}");
+        LastComposition = comp;
+        GD.Print($"[OracleTablet] Composition: '{comp.Description}' → idea: {comp.PrimaryIdea} | stamps: {string.Join(",", comp.StampCounts.Keys)}");
     }
 
     public void SetDrawMode()

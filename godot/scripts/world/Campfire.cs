@@ -14,6 +14,8 @@ public partial class Campfire : Node3D
     public float   Fuel          { get; private set; } = 0f;
     public float   MaxFuel       { get; set; } = 10f;
     public bool    IsBurning     => CurrentStage == Stage.Burning || CurrentStage == Stage.Lit;
+    /// <summary>Set before AddChild — determines if stone ring is built around fire.</summary>
+    public bool    WithStoneRing { get; set; } = false;
 
     private MeshInstance3D _branchMesh;
     private OmniLight3D    _fireLight;
@@ -82,18 +84,21 @@ public partial class Campfire : Node3D
         _branchMesh.Position = new Vector3(0, 0.12f, 0);
         AddChild(_branchMesh);
 
-        // Stones ring
-        for (int i = 0; i < 6; i++)
+        // Stone ring — only if player included stones in blueprint
+        if (WithStoneRing)
         {
-            float a = i * Mathf.Pi / 3f;
-            var stone = new MeshInstance3D();
-            var sm = new StandardMaterial3D();
-            sm.AlbedoColor = new Color(0.5f, 0.5f, 0.5f);
-            var sp = new SphereMesh(); sp.Radius = 0.1f; sp.Height = 0.2f;
-            sp.SurfaceSetMaterial(0, sm);
-            stone.Mesh = sp;
-            stone.Position = new Vector3(Mathf.Cos(a)*0.5f, 0.05f, Mathf.Sin(a)*0.5f);
-            AddChild(stone);
+            for (int i = 0; i < 6; i++)
+            {
+                float a = i * Mathf.Pi / 3f;
+                var stone = new MeshInstance3D();
+                var sm = new StandardMaterial3D();
+                sm.AlbedoColor = new Color(0.5f, 0.5f, 0.55f);
+                var sp = new SphereMesh(); sp.Radius = 0.12f; sp.Height = 0.22f;
+                sp.SurfaceSetMaterial(0, sm);
+                stone.Mesh = sp;
+                stone.Position = new Vector3(Mathf.Cos(a)*0.52f, 0.06f, Mathf.Sin(a)*0.52f);
+                AddChild(stone);
+            }
         }
 
         // Fire light (off until lit)

@@ -27,6 +27,7 @@ public static class CompositionAnalyzer
     private static readonly List<CompositionRecipe> Recipes = new()
     {
         // Fire-related
+        new(new[]{"branch","branch","stone","stone","fire"}, "fire", "Lagerfeuer mit Steinkranz", 0.95f),
         new(new[]{"branch","branch","fire"},         "fire",        "Lagerfeuer",    0.9f),
         new(new[]{"branch","fire"},                  "fire",        "Feuer entzünden",0.7f),
         new(new[]{"stone","stone","fire"},            "fire",        "Feuersteine",   0.8f),

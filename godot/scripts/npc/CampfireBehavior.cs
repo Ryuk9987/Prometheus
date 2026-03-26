@@ -29,6 +29,9 @@ public partial class CampfireBehavior : Node
     private const float  MoveSpeed         = 2.8f;
     private const float  WoodNeeded        = 3f;
 
+    // Build style derived from oracle composition
+    private bool _withStoneRing = false;
+
     public bool IsActive => _state != BState.Idle;
 
     public override void _Ready()
@@ -73,6 +76,10 @@ public partial class CampfireBehavior : Node
 
     private void DecideNextAction()
     {
+        // Read oracle composition to determine build style
+        var comp = OracleTablet.Instance?.LastComposition;
+        _withStoneRing = comp != null && comp.StampCounts.ContainsKey("stone");
+
         // Tend existing fire if low fuel
         var nearFire = CampfireManager.Instance?.FindNearestNeedingFuel(_owner.GlobalPosition);
         if (nearFire != null && _owner.GlobalPosition.DistanceTo(nearFire.GlobalPosition) < 25f)
@@ -91,7 +98,8 @@ public partial class CampfireBehavior : Node
         {
             _state = BState.SeekWood;
             _hasSite = false;
-            GD.Print($"[Campfire] {_owner.NpcName}: will build new campfire.");
+            string style = _withStoneRing ? "mit Steinkranz" : "nur Asthaufen";
+            GD.Print($"[Campfire] {_owner.NpcName}: baut Lagerfeuer ({style}).");
         }
     }
 
@@ -133,8 +141,8 @@ public partial class CampfireBehavior : Node
     {
         if (_targetFire == null)
         {
-            // Spawn new campfire
             var fire = new Campfire();
+            fire.WithStoneRing = _withStoneRing;
             fire.Position = _buildSite;
             _owner.GetParent().AddChild(fire);
             _targetFire = fire;

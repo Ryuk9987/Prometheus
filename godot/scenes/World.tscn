@@ -18,7 +18,7 @@
 [ext_resource type="Script" path="res://scripts/ai/TribeManager.cs" id="18"]
 [ext_resource type="Script" path="res://scripts/ui/PlayerBuildMenu.cs" id="19"]
 [ext_resource type="Script" path="res://scripts/world/BuildOrderManager.cs" id="20"]
-[ext_resource type="Script" path="res://scripts/ui/NpcContextMenu.cs" id="21"]
+[ext_resource type="Script" path="res://scripts/ui/NpcInspector.cs" id="21"]
 [ext_resource type="Script" path="res://scripts/ui/InterpretationLog.cs" id="14"]
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_1"]
@@ -115,7 +115,7 @@ script = ExtResource("20")
 [node name="PlayerBuildMenu" type="CanvasLayer" parent="."]
 script = ExtResource("19")
 
-[node name="NpcContextMenu" type="CanvasLayer" parent="."]
+[node name="NpcInspector" type="CanvasLayer" parent="."]
 script = ExtResource("21")
 
 [node name="WorldGenerator" type="Node3D" parent="."]

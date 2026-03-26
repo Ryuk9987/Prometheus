@@ -29,7 +29,10 @@ public partial class StrategyCameraController : Node3D
         if (Input.IsKeyPressed(Key.D) || Input.IsKeyPressed(Key.Right)) input.X += 1;
 
         if (input != Vector3.Zero)
+        {
+            CameraFollow.Instance?.StopFollow(); // WASD breaks follow
             Position += Transform.Basis * input.Normalized() * PanSpeed * (float)delta;
+        }
 
         UpdateCameraPosition();
     }
@@ -51,10 +54,13 @@ public partial class StrategyCameraController : Node3D
         if (@event is InputEventMouseMotion mm)
         {
             if (_orbiting)
+            {
+                CameraFollow.Instance?.StopFollow();
                 RotateY(Mathf.DegToRad(-mm.Relative.X * OrbitSpeed));
-
+            }
             if (_panning)
             {
+                CameraFollow.Instance?.StopFollow();
                 var panX = -mm.Relative.X * _zoomLevel * 0.001f * PanSpeed;
                 var panZ = -mm.Relative.Y * _zoomLevel * 0.001f * PanSpeed;
                 Position += Transform.Basis.X * panX + Transform.Basis.Z * panZ;

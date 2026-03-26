@@ -4,7 +4,7 @@
 [ext_resource type="Script" path="res://scripts/camera/StrategyCameraController.cs" id="2"]
 [ext_resource type="Script" path="res://scripts/npc/NpcSpawner.cs" id="3"]
 [ext_resource type="PackedScene" path="res://scenes/Npc.tscn" id="4"]
-[ext_resource type="Script" path="res://scripts/ui/DebugOverlay.cs" id="5"]
+[ext_resource type="Script" path="res://scripts/ui/NpcRoster.cs" id="5"]
 [ext_resource type="Script" path="res://scripts/core/OracleManager.cs" id="6"]
 [ext_resource type="Script" path="res://scripts/world/ResourceManager.cs" id="8"]
 [ext_resource type="Script" path="res://scripts/world/WorldGenerator.cs" id="9"]
@@ -147,5 +147,5 @@ script = ExtResource("13")
 [node name="InterpretationLog" type="CanvasLayer" parent="."]
 script = ExtResource("14")
 
-[node name="DebugOverlay" type="CanvasLayer" parent="."]
+[node name="NpcRoster" type="CanvasLayer" parent="."]
 script = ExtResource("5")

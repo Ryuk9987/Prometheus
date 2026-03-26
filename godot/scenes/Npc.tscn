@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3 uid="uid://npc_entity"]
+[gd_scene load_steps=5 format=3 uid="uid://npc_entity"]
 
 [ext_resource type="Script" path="res://scripts/npc/NpcEntity.cs" id="1"]
 [ext_resource type="Script" path="res://scripts/npc/PersonalityComponent.cs" id="2"]
@@ -15,28 +15,20 @@
 [ext_resource type="Script" path="res://scripts/npc/ForagingBehavior.cs" id="13"]
 [ext_resource type="Script" path="res://scripts/npc/NpcInventory.cs" id="14"]
 [ext_resource type="Script" path="res://scripts/npc/WellbeingComponent.cs" id="15"]
-
-[sub_resource type="CapsuleMesh" id="CapsuleMesh_1"]
-radius = 0.3
-height = 1.0
+[ext_resource type="Script" path="res://scripts/npc/NpcVisuals.cs" id="16"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_1"]
-radius = 0.3
-height = 1.0
+radius = 0.28
+height = 1.8
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_1"]
-albedo_color = Color(0.2, 0.8, 0.3, 1)
+albedo_color = Color(0.2, 0.6, 0.4, 1)
 
 [node name="NpcEntity" type="Node3D"]
 script = ExtResource("1")
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
-position = Vector3(0, 0.5, 0)
-mesh = SubResource("CapsuleMesh_1")
-surface_material_override/0 = SubResource("StandardMaterial3D_1")
-
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
-position = Vector3(0, 0.5, 0)
+position = Vector3(0, 0.9, 0)
 shape = SubResource("CapsuleShape3D_1")
 
 [node name="NavigationAgent3D" type="NavigationAgent3D" parent="."]
@@ -44,7 +36,7 @@ path_desired_distance = 0.5
 target_desired_distance = 0.5
 
 [node name="Label3D" type="Label3D" parent="."]
-position = Vector3(0, 1.4, 0)
+position = Vector3(0, 2.1, 0)
 billboard = 1
 font_size = 24
 outline_size = 6
@@ -91,3 +83,6 @@ script = ExtResource("14")
 
 [node name="WellbeingComponent" type="Node" parent="."]
 script = ExtResource("15")
+
+[node name="NpcVisuals" type="Node3D" parent="."]
+script = ExtResource("16")

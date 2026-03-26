@@ -38,14 +38,20 @@ public partial class DebugOverlay : CanvasLayer
 
         foreach (var npc in GameManager.Instance.AllNpcs)
         {
-            var knows = npc.Knowledge.Knowledge;
-            if (knows.Count == 0) continue;
+            // Needs indicators
+            string hungerCol = npc.Needs.IsStarving ? "red" : npc.Needs.IsHungry ? "orange" : "green";
+            string thirstCol = npc.Needs.Thirst >= 0.95f ? "red" : npc.Needs.IsThirsty ? "orange" : "green";
+            string beliefCol = npc.Belief.Belief >= 0.3f ? "cyan" : "gray";
 
             sb.Append($"[color=yellow]{npc.NpcName}[/color] ");
-            foreach (var k in knows.Values)
+            sb.Append($"[color={hungerCol}]H:{npc.Needs.Hunger:F1}[/color] ");
+            sb.Append($"[color={thirstCol}]T:{npc.Needs.Thirst:F1}[/color] ");
+            sb.Append($"[color={beliefCol}]B:{npc.Belief.Belief:F1}[/color] ");
+
+            foreach (var k in npc.Knowledge.Knowledge.Values)
             {
-                string color = k.Depth > 0.7f ? "green" : k.Depth > 0.3f ? "orange" : "red";
-                sb.Append($"[color={color}]{k.Id}({k.Depth:F1})[/color] ");
+                string kCol = k.Depth > 0.7f ? "green" : k.Depth > 0.3f ? "orange" : "red";
+                sb.Append($"[color={kCol}]{k.Id}({k.Depth:F1})[/color] ");
             }
             sb.AppendLine();
         }

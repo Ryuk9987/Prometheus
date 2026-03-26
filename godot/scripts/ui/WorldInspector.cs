@@ -247,9 +247,12 @@ public partial class WorldInspector : CanvasLayer
     private void BuildUI()
     {
         _panel = new Panel();
-        _panel.SetAnchorsPreset(Control.LayoutPreset.BottomLeft);
+        _panel.AnchorLeft = 0f;
+        _panel.AnchorRight = 0f;
+        _panel.AnchorTop = 1f;
+        _panel.AnchorBottom = 1f;
         _panel.Position = new Vector2(8, -280);
-        _panel.Size     = new Vector2(260, 270);
+        _panel.Size = new Vector2(260, 270);
 
         var style = new StyleBoxFlat();
         style.BgColor    = new Color(0.06f, 0.08f, 0.13f, 0.95f);

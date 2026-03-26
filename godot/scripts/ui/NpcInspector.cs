@@ -419,9 +419,12 @@ public partial class NpcInspector : CanvasLayer
     private void BuildUI()
     {
         _panel = new Panel();
-        _panel.SetAnchorsPreset(Control.LayoutPreset.RightWide);
-        _panel.Size     = new Vector2(320, 580);
-        _panel.Position = new Vector2(-326, (GetViewport()?.GetVisibleRect().Size.Y ?? 1080) / 2f - 290);
+        _panel.AnchorLeft = 1f;
+        _panel.AnchorRight = 1f;
+        _panel.AnchorTop = 0.5f;
+        _panel.AnchorBottom = 0.5f;
+        _panel.Size = new Vector2(320, 580);
+        _panel.Position = new Vector2(-326, -290);
 
         var style = new StyleBoxFlat();
         style.BgColor     = new Color(0.07f, 0.08f, 0.13f, 0.97f);

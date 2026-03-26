@@ -12,12 +12,13 @@ public partial class NpcInspector : CanvasLayer
 {
     public static NpcInspector Instance { get; private set; }
 
-    private Panel         _panel;
-    private Label         _nameLabel;
-    private HBoxContainer _tabBar;
-    private Control       _tabContent;
-    private NpcEntity     _npc;
-    private int           _activeTab = 0;
+    private Panel           _panel;
+    private Label           _nameLabel;
+    private HBoxContainer   _tabBar;
+    private ScrollContainer _tabScroll;
+    private VBoxContainer   _tabContent;
+    private NpcEntity       _npc;
+    private int             _activeTab = 0;
 
     private static readonly string[] TabNames = { "📋 Info", "📚 Wissen", "💭 Gedanken", "⚒ Auftrag" };
 
@@ -111,26 +112,19 @@ public partial class NpcInspector : CanvasLayer
     private void RefreshActiveTab()
     {
         foreach (Node c in _tabContent.GetChildren()) c.QueueFree();
-        var content = _activeTab switch {
-            0 => BuildInfoTab(),
-            1 => BuildKnowledgeTab(),
-            2 => BuildThoughtsTab(),
-            3 => BuildOrderTab(),
-            _ => new Control()
-        };
-        content.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-        content.SizeFlagsVertical   = Control.SizeFlags.ExpandFill;
-        _tabContent.AddChild(content);
-        content.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        switch (_activeTab)
+        {
+            case 0: FillInfoTab(_tabContent);      break;
+            case 1: FillKnowledgeTab(_tabContent); break;
+            case 2: FillThoughtsTab(_tabContent);  break;
+            case 3: FillOrderTab(_tabContent);     break;
+        }
     }
 
     // ── Tab: Info ─────────────────────────────────────────────────────────
-    private Control BuildInfoTab()
+    private void FillInfoTab(VBoxContainer vbox)
     {
-        var scroll = new ScrollContainer();
-        var vbox = new VBoxContainer();
         vbox.AddThemeConstantOverride("separation", 6);
-        scroll.AddChild(vbox);
 
         var tribe = TribeManager.Instance?.GetTribe(_npc);
         bool isLeader = tribe?.Leader == _npc;
@@ -170,17 +164,12 @@ public partial class NpcInspector : CanvasLayer
         vbox.AddChild(new HSeparator());
         var btn = MakeBtn("📷 Kamera folgen", () => CameraFollow.Instance?.Follow(_npc));
         vbox.AddChild(btn);
-
-        return scroll;
     }
 
     // ── Tab: Wissen ───────────────────────────────────────────────────────
-    private Control BuildKnowledgeTab()
+    private void FillKnowledgeTab(VBoxContainer vbox)
     {
-        var scroll = new ScrollContainer();
-        var vbox = new VBoxContainer();
         vbox.AddThemeConstantOverride("separation", 3);
-        scroll.AddChild(vbox);
 
         // Group by category
         foreach (KnowledgeCategory cat in System.Enum.GetValues(typeof(KnowledgeCategory)))
@@ -244,17 +233,12 @@ public partial class NpcInspector : CanvasLayer
             empty.AddThemeColorOverride("font_color", new Color(0.5f,0.5f,0.5f));
             vbox.AddChild(empty);
         }
-
-        return scroll;
     }
 
     // ── Tab: Gedanken ─────────────────────────────────────────────────────
-    private Control BuildThoughtsTab()
+    private void FillThoughtsTab(VBoxContainer vbox)
     {
-        var scroll = new ScrollContainer();
-        var vbox = new VBoxContainer();
         vbox.AddThemeConstantOverride("separation", 4);
-        scroll.AddChild(vbox);
 
         // Generate thoughts based on state
         var thoughts = GenerateThoughts();
@@ -281,7 +265,6 @@ public partial class NpcInspector : CanvasLayer
                 vbox.AddChild(lbl);
             }
         }
-        return scroll;
     }
 
     private List<(string text, string mood)> GenerateThoughts()
@@ -314,12 +297,9 @@ public partial class NpcInspector : CanvasLayer
     }
 
     // ── Tab: Auftrag ──────────────────────────────────────────────────────
-    private Control BuildOrderTab()
+    private void FillOrderTab(VBoxContainer vbox)
     {
-        var scroll = new ScrollContainer();
-        var vbox = new VBoxContainer();
         vbox.AddThemeConstantOverride("separation", 5);
-        scroll.AddChild(vbox);
 
         // Inventory
         AddSectionHeader(vbox, "Inventar");
@@ -406,8 +386,6 @@ public partial class NpcInspector : CanvasLayer
                 vbox.AddChild(lbl);
             }
         }
-
-        return scroll;
     }
 
     private void IssueCraftOrder(NpcEntity npc, KnowledgeDefinition def)
@@ -420,29 +398,29 @@ public partial class NpcInspector : CanvasLayer
     // ── UI Build ──────────────────────────────────────────────────────────
     private void BuildUI()
     {
+        // Panel: fixed size, anchored top-right corner
         _panel = new Panel();
-        _panel.AnchorLeft   = 1f;  _panel.AnchorRight  = 1f;
-        _panel.AnchorTop    = 0.5f; _panel.AnchorBottom = 0.5f;
-        _panel.Position = new Vector2(-326, -290);
-        _panel.SetDeferred(Control.PropertyName.Size, new Vector2(320, 580));
+        _panel.AnchorLeft = 1f; _panel.AnchorRight  = 1f;
+        _panel.AnchorTop  = 0f; _panel.AnchorBottom = 0f;
+        _panel.OffsetLeft = -326; _panel.OffsetTop  = 10;
+        _panel.OffsetRight = 0;   _panel.OffsetBottom = 590;
 
         var style = new StyleBoxFlat();
-        style.BgColor     = new Color(0.07f, 0.08f, 0.13f, 0.97f);
-        style.BorderColor  = new Color(0.4f, 0.6f, 0.9f);
+        style.BgColor = new Color(0.07f, 0.08f, 0.13f, 0.97f);
+        style.BorderColor = new Color(0.4f, 0.6f, 0.9f);
         style.BorderWidthBottom = style.BorderWidthTop =
         style.BorderWidthLeft   = style.BorderWidthRight = 2;
         _panel.AddThemeStyleboxOverride("panel", style);
 
-        var margin = new MarginContainer();
-        margin.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-        margin.SizeFlagsVertical   = Control.SizeFlags.ExpandFill;
-        foreach (var s in new[]{"left","right","top","bottom"})
-            margin.AddThemeConstantOverride($"margin_{s}", 8);
+        // Root VBox fills the panel via anchors (set after AddChild)
+        var root = new VBoxContainer();
+        root.AddThemeConstantOverride("separation", 4);
+        _panel.AddChild(root);
+        root.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        root.OffsetLeft = 8; root.OffsetRight = -8;
+        root.OffsetTop  = 8; root.OffsetBottom = -8;
 
-        var innerVbox = new VBoxContainer();
-        innerVbox.AddThemeConstantOverride("separation", 4);
-
-        // Header
+        // Header row
         var header = new HBoxContainer();
         _nameLabel = new Label();
         _nameLabel.AddThemeFontSizeOverride("font_size", 18);
@@ -452,8 +430,8 @@ public partial class NpcInspector : CanvasLayer
         var closeBtn = MakeBtn("✕", Close);
         closeBtn.CustomMinimumSize = new Vector2(30, 0);
         header.AddChild(closeBtn);
-        innerVbox.AddChild(header);
-        innerVbox.AddChild(new HSeparator());
+        root.AddChild(header);
+        root.AddChild(new HSeparator());
 
         // Tab bar
         _tabBar = new HBoxContainer();
@@ -468,28 +446,21 @@ public partial class NpcInspector : CanvasLayer
             btn.Pressed += () => ShowTab(captured);
             _tabBar.AddChild(btn);
         }
-        innerVbox.AddChild(_tabBar);
-        innerVbox.AddChild(new HSeparator());
+        root.AddChild(_tabBar);
+        root.AddChild(new HSeparator());
 
-        // Tab content area — plain Control that child ScrollContainers fill
-        _tabContent = new Control();
-        _tabContent.SizeFlagsVertical   = Control.SizeFlags.ExpandFill;
+        // Scroll area for tab content (fills rest of panel)
+        _tabScroll = new ScrollContainer();
+        _tabScroll.SizeFlagsVertical   = Control.SizeFlags.ExpandFill;
+        _tabScroll.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        root.AddChild(_tabScroll);
+
+        _tabContent = new VBoxContainer();
         _tabContent.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-        _tabContent.ClipContents = true;
-        innerVbox.AddChild(_tabContent);
+        _tabContent.AddThemeConstantOverride("separation", 4);
+        _tabScroll.AddChild(_tabContent);
 
-        margin.AddChild(innerVbox);
-        _panel.AddChild(margin);
         AddChild(_panel);
-
-        // Anchors for margin must be set after it's in the tree
-        _panel.Ready += () => {
-            margin.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-            margin.SetDeferred(Control.PropertyName.OffsetLeft,  8);
-            margin.SetDeferred(Control.PropertyName.OffsetRight, -8);
-            margin.SetDeferred(Control.PropertyName.OffsetTop,    8);
-            margin.SetDeferred(Control.PropertyName.OffsetBottom,-8);
-        };
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────

@@ -118,8 +118,10 @@ public partial class NpcInspector : CanvasLayer
             3 => BuildOrderTab(),
             _ => new Control()
         };
-        content.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        content.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        content.SizeFlagsVertical   = Control.SizeFlags.ExpandFill;
         _tabContent.AddChild(content);
+        content.SetAnchorsPreset(Control.LayoutPreset.FullRect);
     }
 
     // ── Tab: Info ─────────────────────────────────────────────────────────
@@ -469,10 +471,11 @@ public partial class NpcInspector : CanvasLayer
         innerVbox.AddChild(_tabBar);
         innerVbox.AddChild(new HSeparator());
 
-        // Tab content area
+        // Tab content area — plain Control that child ScrollContainers fill
         _tabContent = new Control();
         _tabContent.SizeFlagsVertical   = Control.SizeFlags.ExpandFill;
         _tabContent.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        _tabContent.ClipContents = true;
         innerVbox.AddChild(_tabContent);
 
         margin.AddChild(innerVbox);

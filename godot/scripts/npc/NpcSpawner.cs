@@ -41,7 +41,7 @@ public partial class NpcSpawner : Node3D
             float z = rng.RandfRange(-SpawnRadius, SpawnRadius);
             npc.Position = new Vector3(x, 0.5f, z);
 
-            GetParent().AddChild(npc);
+            GetParent().CallDeferred(Node.MethodName.AddChild, npc);
         }
 
         GD.Print($"[NpcSpawner] Spawned {SpawnCount} NPCs into tribe_alpha.");

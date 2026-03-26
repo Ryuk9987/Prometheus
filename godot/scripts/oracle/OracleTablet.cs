@@ -118,6 +118,26 @@ public partial class OracleTablet : Node3D
         GD.Print($"[OracleTablet] Drawing submitted: {strokes.Count} strokes.");
     }
 
+    // Current composition (stamps + strokes)
+    private List<PlacedStamp> _currentStamps;
+
+    public void SetComposition(List<PlacedStamp> stamps, List<DrawnStroke> strokes)
+    {
+        bool hasContent = (stamps != null && stamps.Count > 0) ||
+                          (strokes != null && strokes.Count > 0);
+        if (!hasContent) return;
+
+        _currentStamps  = stamps;
+        _currentDrawing = strokes;
+        Mode            = TabletMode.Draw;
+        HasContent      = true;
+        ActiveBlueprintId = "";
+        TriggerFlash();
+
+        var comp = CompositionAnalyzer.Analyze(stamps ?? new List<PlacedStamp>(), strokes);
+        GD.Print($"[OracleTablet] Composition: '{comp.Description}' → idea: {comp.PrimaryIdea}");
+    }
+
     public void SetDrawMode()
     {
         Mode = TabletMode.Draw;
@@ -192,17 +212,45 @@ public partial class OracleTablet : Node3D
 
     private void TransferDrawing(NpcEntity npc)
     {
-        var features = DrawingAnalyzer.Analyze(_currentDrawing);
-        var result   = InterpretationEngine.Interpret(features, npc);
+        // Analyze composition (stamps take priority over freehand)
+        InterpretationResult result;
+
+        if (_currentStamps != null && _currentStamps.Count > 0)
+        {
+            var comp = CompositionAnalyzer.Analyze(_currentStamps, _currentDrawing);
+            if (comp.PrimaryIdea != "unknown")
+            {
+                // Composition match — understanding via belief + curiosity
+                var rng = new RandomNumberGenerator(); rng.Randomize();
+                float depth = Mathf.Clamp(
+                    npc.Belief.Belief * npc.Personality.Curiosity * rng.RandfRange(0.4f, 0.8f), 0f, 1f);
+
+                result = new InterpretationResult {
+                    IdeaId    = comp.PrimaryIdea,
+                    IdeaLabel = comp.Description,
+                    Depth     = depth,
+                    Confidence = npc.Belief.Belief * 0.8f,
+                    Reasoning  = $"Ich sehe '{comp.Description}' — ich versuche das nachzubauen."
+                };
+            }
+            else
+            {
+                var features = DrawingAnalyzer.Analyze(_currentDrawing ?? new List<DrawnStroke>());
+                result = InterpretationEngine.Interpret(features, npc);
+            }
+        }
+        else
+        {
+            var features = DrawingAnalyzer.Analyze(_currentDrawing ?? new List<DrawnStroke>());
+            result = InterpretationEngine.Interpret(features, npc);
+        }
 
         if (result.IdeaId == "unknown") return;
 
-        npc.Knowledge.Learn(result.IdeaId, result.Depth, result.Confidence, "oracle_drawing");
+        npc.Knowledge.Learn(result.IdeaId, result.Depth, result.Confidence, "oracle_tablet");
         npc.Belief.Reinforce(0.08f);
 
-        GD.Print($"[OracleTablet] {npc.NpcName} interpreted drawing as '{result.IdeaLabel}' " +
-                 $"depth:{result.Depth:F2} — {result.Reasoning}");
-
+        GD.Print($"[OracleTablet] {npc.NpcName}: '{result.IdeaLabel}' depth:{result.Depth:F2}");
         EmitSignal(SignalName.KnowledgeTransferred, npc.NpcName, result.IdeaId, result.Depth);
         EmitSignal(SignalName.Interpretation, npc.NpcName, result.IdeaLabel, result.Reasoning);
     }

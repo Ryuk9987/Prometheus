@@ -1,4 +1,4 @@
-[gd_scene load_steps=15 format=3 uid="uid://world_main"]
+[gd_scene load_steps=17 format=3 uid="uid://world_main"]
 
 [ext_resource type="Script" path="res://scripts/core/GameManager.cs" id="1"]
 [ext_resource type="Script" path="res://scripts/camera/StrategyCameraController.cs" id="2"]
@@ -6,11 +6,12 @@
 [ext_resource type="PackedScene" path="res://scenes/Npc.tscn" id="4"]
 [ext_resource type="Script" path="res://scripts/ui/DebugOverlay.cs" id="5"]
 [ext_resource type="Script" path="res://scripts/core/OracleManager.cs" id="6"]
-[ext_resource type="Script" path="res://scripts/ui/OracleUI.cs" id="7"]
 [ext_resource type="Script" path="res://scripts/world/ResourceManager.cs" id="8"]
 [ext_resource type="Script" path="res://scripts/world/WorldGenerator.cs" id="9"]
 [ext_resource type="Script" path="res://scripts/world/AnimalManager.cs" id="10"]
 [ext_resource type="Script" path="res://scripts/ai/TaskManager.cs" id="11"]
+[ext_resource type="PackedScene" path="res://scenes/OracleTablet.tscn" id="12"]
+[ext_resource type="Script" path="res://scripts/ui/TabletUI.cs" id="13"]
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_1"]
 size = Vector2(100, 100)
@@ -63,7 +64,6 @@ shape = SubResource("BoxShape3D_1")
 [node name="NavigationRegion3D" type="NavigationRegion3D" parent="."]
 
 [node name="CameraRig" type="Node3D" parent="."]
-position = Vector3(0, 0, 0)
 script = ExtResource("2")
 
 [node name="Camera3D" type="Camera3D" parent="CameraRig"]
@@ -95,8 +95,13 @@ script = ExtResource("9")
 [node name="OracleManager" type="Node" parent="."]
 script = ExtResource("6")
 
-[node name="OracleUI" type="CanvasLayer" parent="."]
-script = ExtResource("7")
+[node name="OracleTabletInstance" type="Node3D" parent="."]
+position = Vector3(0, 0, -5)
+
+[node name="OracleTablet" parent="OracleTabletInstance" instance=ExtResource("12")]
+
+[node name="TabletUI" type="CanvasLayer" parent="."]
+script = ExtResource("13")
 
 [node name="DebugOverlay" type="CanvasLayer" parent="."]
 script = ExtResource("5")

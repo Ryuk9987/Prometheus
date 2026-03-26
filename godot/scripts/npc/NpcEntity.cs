@@ -19,6 +19,7 @@ public partial class NpcEntity : Node3D
     public SocialComponent      Social      { get; private set; }
     public BeliefComponent      Belief      { get; private set; }
     public SurvivalBehavior      Survival     { get; private set; }
+    public TabletSeekBehavior    TabletSeek   { get; private set; }
     public CooperationComponent  Cooperation  { get; private set; }
 
     private Label3D               _nameLabel;
@@ -38,6 +39,7 @@ public partial class NpcEntity : Node3D
         Social      = GetNode<SocialComponent>("SocialComponent");
         Belief      = GetNode<BeliefComponent>("BeliefComponent");
         Survival     = GetNode<SurvivalBehavior>("SurvivalBehavior");
+        TabletSeek   = GetNode<TabletSeekBehavior>("TabletSeekBehavior");
         Cooperation  = GetNode<CooperationComponent>("CooperationComponent");
         _nameLabel   = GetNode<Label3D>("Label3D");
 
@@ -68,7 +70,10 @@ public partial class NpcEntity : Node3D
         // Priority 1: Survival (hunger/thirst critical)
         if (Survival.Tick(delta)) return;
 
-        // Priority 2: Community task (hunting, gathering, building)
+        // Priority 2: Oracle Tablet (believers seek knowledge)
+        if (TabletSeek.Tick(delta)) return;
+
+        // Priority 3: Community task (hunting, gathering, building)
         if (Cooperation.Tick(delta)) return;
 
         // Priority 3: Wander

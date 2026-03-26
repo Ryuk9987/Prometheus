@@ -1,0 +1,55 @@
+[gd_scene load_steps=8 format=3 uid="uid://oracle_tablet"]
+
+[ext_resource type="Script" path="res://scripts/oracle/OracleTablet.cs" id="1"]
+[ext_resource type="Script" path="res://scripts/oracle/TabletCanvas.cs" id="2"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_base"]
+size = Vector3(0.4, 0.05, 0.6)
+
+[sub_resource type="BoxMesh" id="BoxMesh_screen"]
+size = Vector3(0.38, 0.01, 0.55)
+
+[sub_resource type="StandardMaterial3D" id="BaseMat"]
+albedo_color = Color(0.08, 0.08, 0.12, 1)
+roughness = 0.3
+metallic = 0.8
+
+[sub_resource type="StandardMaterial3D" id="PillarMat"]
+albedo_color = Color(0.15, 0.12, 0.2, 1)
+roughness = 0.6
+
+[node name="OracleTablet" type="Node3D"]
+script = ExtResource("1")
+
+[node name="Pillar" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0.6, 0)
+rotation_degrees = Vector3(0, 0, 0)
+mesh = SubResource("BoxMesh_base")
+surface_material_override/0 = SubResource("PillarMat")
+
+[node name="PillarBase" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0.05, 0)
+mesh = SubResource("BoxMesh_base")
+scale = Vector3(1.3, 0.5, 1.3)
+surface_material_override/0 = SubResource("PillarMat")
+
+[node name="Screen" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0.94, 0)
+rotation_degrees = Vector3(-15, 0, 0)
+mesh = SubResource("BoxMesh_screen")
+surface_material_override/0 = SubResource("BaseMat")
+
+[node name="Glow" type="OmniLight3D" parent="."]
+position = Vector3(0, 1.2, 0)
+light_color = Color(0.4, 0.7, 1.0, 1)
+light_energy = 2.0
+omni_range = 8.0
+
+[node name="SubViewport" type="SubViewport" parent="."]
+size = Vector2i(512, 512)
+render_target_update_mode = 4
+
+[node name="TabletCanvas" type="Control" parent="SubViewport"]
+layout_mode = 3
+anchors_preset = 15
+script = ExtResource("2")

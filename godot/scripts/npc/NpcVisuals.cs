@@ -227,7 +227,8 @@ public partial class NpcVisuals : Node3D
         var flatDir = new Vector3(movement.X, 0, movement.Z);
         if (flatDir.LengthSquared() > 0.00001f)
         {
-            float target = Mathf.Atan2(-flatDir.X, -flatDir.Z);
+            // Model front = +Z, so face movement direction directly
+            float target = Mathf.Atan2(flatDir.X, flatDir.Z);
             _owner.Rotation = new Vector3(0, Mathf.LerpAngle(_owner.Rotation.Y, target, 0.2f), 0);
         }
         _lastPos = curPos;

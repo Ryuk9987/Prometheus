@@ -69,7 +69,8 @@ public partial class WorldInspector : CanvasLayer
         switch (_current.Kind)
         {
             case WorldObjectKind.Resource:
-                BuildResourceContent(_current.Node as ResourceNode);
+                if (_current.Node is NatureObject nat) BuildNatureContent(nat);
+                else BuildResourceContent(_current.Node as ResourceNode);
                 break;
             case WorldObjectKind.Animal:
                 BuildAnimalContent(_current.Node as Animal);
@@ -186,6 +187,44 @@ public partial class WorldInspector : CanvasLayer
             hint.Text = "Wartet auf NPC mit passendem Wissen.";
             hint.AutowrapMode = TextServer.AutowrapMode.Word;
             hint.AddThemeColorOverride("font_color", new Color(0.6f,0.6f,0.4f));
+            _content.AddChild(hint);
+        }
+    }
+
+    private void BuildNatureContent(NatureObject n)
+    {
+        if (n == null) return;
+        AddRow("Typ",      n.GetDisplayName());
+        AddRow("Status",   n.State.ToString(),
+            n.State == NatureObject.GrowthState.Mature ? new Color(0.3f,0.9f,0.3f) :
+            n.State == NatureObject.GrowthState.Stump  ? new Color(0.6f,0.4f,0.2f) :
+            new Color(0.8f,0.8f,0.4f));
+        AddBar("Wuchs",    n.GrowthAge, new Color(0.3f,0.8f,0.3f));
+
+        // Yields
+        if (NatureObject.Yields.TryGetValue(n.ObjType, out var yields))
+        {
+            _content.AddChild(new HSeparator());
+            var h = new Label(); h.Text = n.IsFellable ? "Beim Fällen:" : "Beim Sammeln:";
+            h.AddThemeFontSizeOverride("font_size", 12);
+            h.AddThemeColorOverride("font_color", new Color(0.6f,0.8f,0.6f));
+            _content.AddChild(h);
+            foreach (var (res, amt, lbl) in yields)
+            {
+                if (lbl == null) continue;
+                bool isPoison = res is ResourceType.BerryPoison or ResourceType.MushroomPoison;
+                AddRow($"  {lbl}", $"{amt * n.GrowthAge:F1}",
+                    isPoison ? new Color(0.9f,0.3f,0.9f) : new Color(0.8f,0.8f,0.5f));
+            }
+        }
+
+        if (n.IsFellable && !n.Knowledge_Required_Check())
+        {
+            var hint = new Label();
+            hint.Text = "⚠ Zum Fällen werden Werkzeuge benötigt.";
+            hint.AutowrapMode = TextServer.AutowrapMode.Word;
+            hint.AddThemeColorOverride("font_color", new Color(1f,0.7f,0.3f));
+            hint.AddThemeFontSizeOverride("font_size", 11);
             _content.AddChild(hint);
         }
     }

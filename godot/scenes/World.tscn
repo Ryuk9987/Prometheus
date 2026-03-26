@@ -15,6 +15,7 @@
 [ext_resource type="Script" path="res://scripts/camera/CameraFollow.cs" id="15"]
 [ext_resource type="Script" path="res://scripts/world/CampfireManager.cs" id="16"]
 [ext_resource type="Script" path="res://scripts/world/DayCycle.cs" id="17"]
+[ext_resource type="Script" path="res://scripts/world/NatureManager.cs" id="24"]
 [ext_resource type="Script" path="res://scripts/ai/TribeManager.cs" id="18"]
 [ext_resource type="Script" path="res://scripts/ui/PlayerBuildMenu.cs" id="19"]
 [ext_resource type="Script" path="res://scripts/world/BuildOrderManager.cs" id="20"]
@@ -107,6 +108,9 @@ script = ExtResource("16")
 
 [node name="DayCycle" type="Node" parent="."]
 script = ExtResource("17")
+
+[node name="NatureManager" type="Node3D" parent="."]
+script = ExtResource("24")
 
 [node name="TribeManager" type="Node" parent="."]
 script = ExtResource("18")

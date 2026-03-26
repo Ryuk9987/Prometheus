@@ -1,13 +1,6 @@
 #nullable disable
 using Godot;
 
-public enum ResourceType
-{
-    Food,    // Beeren, Früchte, Pilze
-    Water,   // Fluss, Quelle
-    Wood,    // Bäume
-    Stone    // Felsen
-}
 
 /// <summary>
 /// A harvestable world resource. NPCs seek these to survive.

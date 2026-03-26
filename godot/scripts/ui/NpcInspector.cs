@@ -319,10 +319,21 @@ public partial class NpcInspector : CanvasLayer
         vbox.AddThemeConstantOverride("separation", 5);
         scroll.AddChild(vbox);
 
+        // Inventory
+        AddSectionHeader(vbox, "Inventar");
+        var invLabel = new Label();
+        invLabel.Text = _npc.Inventory?.Summary() ?? "—";
+        invLabel.AutowrapMode = TextServer.AutowrapMode.Word;
+        invLabel.AddThemeFontSizeOverride("font_size", 12);
+        invLabel.AddThemeColorOverride("font_color", new Color(0.8f,0.8f,0.6f));
+        vbox.AddChild(invLabel);
+        vbox.AddChild(new HSeparator());
+
         // Current activity
         AddSectionHeader(vbox, "Aktuelle Tätigkeit");
         string activity =
-            _npc.Survival.IsSeekingResource ? "🍗 Sucht Nahrung/Wasser" :
+            _npc.Foraging.IsActive           ? "🌿 Sammelt in der Natur" :
+            _npc.Survival.IsSeekingResource  ? "🍗 Sucht Nahrung/Wasser" :
             _npc.CampfireBuilder.IsActive    ? "🔥 Baut Lagerfeuer" :
             _npc.BuildWorker.IsActive        ? "🏗 Baut Gebäude" :
             _npc.Cooperation.HasTask         ? "⚔ Kooperationsaufgabe" :

@@ -22,7 +22,9 @@ public partial class NpcEntity : Node3D
     public TabletSeekBehavior    TabletSeek      { get; private set; }
     public CooperationComponent  Cooperation     { get; private set; }
     public CampfireBehavior      CampfireBuilder   { get; private set; }
-    public BuildWorkerBehavior   BuildWorker       { get; private set; }
+    public BuildWorkerBehavior   BuildWorker        { get; private set; }
+    public ForagingBehavior      Foraging           { get; private set; }
+    public NpcInventory          Inventory          { get; private set; }
 
     private Label3D               _nameLabel;
     private RandomNumberGenerator _rng = new();
@@ -49,6 +51,8 @@ public partial class NpcEntity : Node3D
         Cooperation     = GetNode<CooperationComponent>("CooperationComponent");
         CampfireBuilder = GetNode<CampfireBehavior>("CampfireBehavior");
         BuildWorker     = GetNode<BuildWorkerBehavior>("BuildWorkerBehavior");
+        Foraging        = GetNode<ForagingBehavior>("ForagingBehavior");
+        Inventory       = GetNode<NpcInventory>("NpcInventory");
         _nameLabel   = GetNode<Label3D>("Label3D");
 
         _nameLabel.Text = NpcName;
@@ -84,7 +88,10 @@ public partial class NpcEntity : Node3D
         // Priority 3: Build campfire (if knows fire)
         if (CampfireBuilder.Tick(delta)) return;
 
-        // Priority 4: Build worker (player build orders)
+        // Priority 4: Forage (gather from nature, learn poison/edible)
+        if (Foraging.Tick(delta)) return;
+
+        // Priority 5: Build worker (player build orders)
         if (BuildWorker.Tick(delta)) return;
 
         // Priority 5: Community task (hunting, gathering)

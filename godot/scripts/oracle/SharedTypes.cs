@@ -8,6 +8,21 @@ using System.Collections.Generic;
 
 public enum DrawTool { Freehand, Line, Rectangle, Circle, Triangle }
 
+// ── Expanded resource types ───────────────────────────────────────────────
+public enum ResourceType
+{
+    // Raw natural
+    Food, Water, Wood, Stone,
+    // Tree products (raw)
+    LogHardwood, LogSoftwood, Bark, Branch, Leaf, Resin,
+    // Processed
+    Plank, Charcoal, Fiber,
+    // Gathered
+    BerryEdible, BerryPoison, MushroomEdible, MushroomPoison,
+    // Animal
+    Meat, Bone, Pelt, Fat,
+}
+
 public class DrawnStroke
 {
     public DrawTool      Tool   { get; }

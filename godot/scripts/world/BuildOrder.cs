@@ -10,10 +10,12 @@ public enum BuildOrderStatus { Pending, InProgress, Done }
 /// </summary>
 public partial class BuildOrder : Node3D
 {
-    public string           KnowledgeId { get; set; }
-    public BuildOrderStatus Status      { get; set; } = BuildOrderStatus.Pending;
-    public float            Progress    { get; set; } = 0f;
-    public float            Required    { get; set; } = 5f;
+    public string           KnowledgeId  { get; set; }
+    public BuildOrderStatus Status       { get; set; } = BuildOrderStatus.Pending;
+    public float            Progress     { get; set; } = 0f;
+    public float            Required     { get; set; } = 5f;
+    public string           TribeId      { get; set; } = "";
+    public bool             IsAutonomous { get; set; } = false;
 
     private MeshInstance3D  _ghost;
     private Label3D         _label;
@@ -53,20 +55,9 @@ public partial class BuildOrder : Node3D
 
         // Spawn actual building visual (placeholder — artist pass later)
         var def = KnowledgeCatalog.Get(KnowledgeId);
-        var building = new MeshInstance3D();
-        var mat = new StandardMaterial3D();
-        mat.AlbedoColor = new Color(0.6f, 0.5f, 0.35f);
-
-        Mesh mesh = KnowledgeId switch {
-            "shelter"    => MakeBox(new Vector3(2f, 1.5f, 2f), mat),
-            "hut"        => MakeBox(new Vector3(3f, 2.5f, 3f), mat),
-            "wall"       => MakeBox(new Vector3(4f, 2f, 0.4f), mat),
-            "storehouse" => MakeBox(new Vector3(3f, 2f, 3f), mat),
-            _            => MakeBox(new Vector3(1f, 1f, 1f), mat),
-        };
-        building.Mesh     = mesh;
-        building.Position = GlobalPosition;
-        GetParent().AddChild(building);
+        // Notify SettlementManager to spawn the real CompletedBuilding
+        SettlementManager.Instance?.OnBuildOrderCompleted(this);
+        if (_registryEntry != null) WorldObjectRegistry.Instance?.Unregister(_registryEntry);
         QueueFree();
     }
 

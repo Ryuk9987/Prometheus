@@ -82,7 +82,7 @@ public partial class WorldInspector : CanvasLayer
                 BuildBuildOrderContent(_current.Node as BuildOrder);
                 break;
             case WorldObjectKind.Structure:
-                BuildGenericContent();
+                BuildStructureContent(_current.Node as CompletedBuilding);
                 break;
         }
     }
@@ -227,6 +227,23 @@ public partial class WorldInspector : CanvasLayer
             hint.AddThemeFontSizeOverride("font_size", 11);
             _content.AddChild(hint);
         }
+    }
+
+    private void BuildStructureContent(CompletedBuilding b)
+    {
+        if (b == null) { BuildGenericContent(); return; }
+        AddRow("Typ",        b.GetDisplayName());
+        AddRow("Stamm",      string.IsNullOrEmpty(b.TribeId) ? "—" : b.TribeId);
+        AddBar("Zustand",    b.Condition, new Color(0.3f,0.8f,0.3f));
+        if (b.ShelterCapacity > 0)
+            AddRow("Unterkunft", $"{b.ShelterCapacity} Plätze");
+        if (b.StorageBonus > 0)
+            AddRow("Lager-Bonus", $"+{b.StorageBonus:F0} Nahrung");
+        AddRow("Einfluss-R.", $"{b.InfluenceRadius:F0} m");
+
+        int nearby = GameManager.Instance?.AllNpcs
+            .Count(n => n.GlobalPosition.DistanceTo(b.GlobalPosition) < b.InfluenceRadius) ?? 0;
+        if (nearby > 0) AddRow("NPCs in der Nähe", nearby.ToString());
     }
 
     private void BuildGenericContent()

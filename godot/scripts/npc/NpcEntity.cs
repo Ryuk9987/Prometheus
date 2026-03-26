@@ -88,10 +88,10 @@ public partial class NpcEntity : Node3D
         // Priority 5: Rally to tribe at night
         if (ShouldRallyToTribe)
         {
-            var dir = TribeCenterHint - GlobalPosition; dir.Y = 0;
-            if (dir.Length() > 5f)
+            var rallyDir = TribeCenterHint - GlobalPosition; rallyDir.Y = 0;
+            if (rallyDir.Length() > 5f)
             {
-                GlobalPosition += dir.Normalized() * MoveSpeed * 0.6f * (float)delta;
+                GlobalPosition += rallyDir.Normalized() * MoveSpeed * 0.6f * (float)delta;
                 return;
             }
         }

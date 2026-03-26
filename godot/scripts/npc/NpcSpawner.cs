@@ -39,7 +39,7 @@ public partial class NpcSpawner : Node3D
 
 			float x = rng.RandfRange(-SpawnRadius, SpawnRadius);
 			float z = rng.RandfRange(-SpawnRadius, SpawnRadius);
-			npc.Position = new Vector3(x, 0.5f, z);
+			npc.Position = new Vector3(x, 0f, z);
 
 			// Starter knowledge per NPC slot
 			if (i == 0) {

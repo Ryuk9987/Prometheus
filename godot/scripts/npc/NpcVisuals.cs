@@ -2,346 +2,323 @@
 using Godot;
 
 /// <summary>
-/// NpcVisuals — replaces the capsule with a stylized low-poly humanoid.
+/// Low-poly humanoid NPC visuals with proper articulated skeleton.
 ///
-/// Body parts (all BoxMesh/SphereMesh, low vertex count):
-///   Head       — slightly rounded box, skin color
-///   Torso      — tall box, tribe color
-///   Hips       — wide short box
-///   Upper arms — thin cylinders
-///   Lower arms — thinner cylinders
-///   Hands      — tiny spheres
-///   Upper legs — cylinders
-///   Lower legs — thinner cylinders
-///   Feet       — flat boxes
+/// Hierarchy (all in BodyRoot local space, feet at Y=0):
+///   BodyRoot (scale = targetHeight / modelHeight)
+///     Torso
+///     Head
+///     LShoulder  → LUpperArm → LElbow → LLowerArm → LHand
+///     RShoulder  → RUpperArm → RElbow → RLowerArm → RHand
+///     LHip       → LUpperLeg → LKnee  → LLowerLeg → LFoot
+///     RHip       → RUpperLeg → RKnee  → RLowerLeg → RFoot
 ///
-/// Role accent: small colored shape on torso:
-///   Leader   — gold crown spike on head
-///   Hunter   — dark cape (box behind torso)
-///   Builder  — tool belt (thin box at waist)
-///   Healer   — cross mark (two thin boxes on torso)
-///   Gatherer — leaf mark (small sphere on back)
+/// The model is designed 1.9 units tall, then uniformly scaled per NPC.
+/// NpcEntity spawns at Y=0.5, so BodyRoot is offset -0.5 → feet at world Y=0.
 /// </summary>
 public partial class NpcVisuals : Node3D
 {
+    // ── Model constants (unscaled, feet at Y=0) ──────────────────────────
+    private const float ModelHeight = 1.9f;
+
+    private const float FootY       = 0.00f;
+    private const float AnkleY      = 0.13f;
+    private const float KneeY       = 0.52f;
+    private const float HipY        = 0.90f;
+    private const float WaistY      = 1.00f;
+    private const float ShoulderY   = 1.45f;
+    private const float NeckY       = 1.55f;
+    private const float HeadCenterY = 1.70f;
+    private const float HipW        = 0.13f;  // hip half-width
+    private const float ShoulderW   = 0.22f;  // shoulder half-width
+
+    // ── Animation pivots ─────────────────────────────────────────────────
+    private Node3D _lHip, _rHip;       // upper leg pivot
+    private Node3D _lKnee, _rKnee;     // lower leg pivot
+    private Node3D _lShoulder, _rShoulder; // upper arm pivot
+    private Node3D _lElbow, _rElbow;   // lower arm pivot
+    private Node3D _bodyRoot;
+    private Node3D _accentNode;
+
+    // ── Runtime ──────────────────────────────────────────────────────────
     private NpcEntity _owner;
-    private Node3D    _bodyRoot;
-    private MeshInstance3D _torso;
-    private MeshInstance3D _head;
-    private StandardMaterial3D _skinMat;
+    private double    _animTime  = 0;
+    private float     _walkSpeed = 0f;
+    private Vector3   _lastPos   = Vector3.Zero;
+
+    // ── Materials (cached for color update) ──────────────────────────────
     private StandardMaterial3D _tribeMat;
-    private StandardMaterial3D _accentMat;
+    private StandardMaterial3D _skinMat;
+    private Color               _tribeColor = new Color(0.3f, 0.55f, 0.8f);
 
-    // Colors
-    private Color _tribeColor  = new Color(0.3f, 0.55f, 0.8f);
-    private Color _skinColor   = new Color(0.85f, 0.72f, 0.58f);
-    private Color _clothColor  = new Color(0.25f, 0.35f, 0.45f);
-    private Color _hairColor   = new Color(0.2f,  0.15f, 0.1f);
-
-    // ── Animation state ───────────────────────────────────────────────────
-    private Node3D _leftUpperArm, _rightUpperArm;
-    private Node3D _leftUpperLeg, _rightUpperLeg;
-    private Node3D _leftLowerLeg, _rightLowerLeg;
-    private Node3D _headNode;
-
-    private double _animTime   = 0;
-    private Vector3 _lastPos   = Vector3.Zero;
-    private float _walkSpeed   = 0f;
-    private const float NpcScale = 0.52f; // world scale
+    // ── Gender & Height ───────────────────────────────────────────────────
+    private bool  _female;
+    private float _targetHeight;
 
     public override void _Ready()
     {
         _owner = GetParent<NpcEntity>();
 
-        var oldMesh = _owner.GetNodeOrNull<MeshInstance3D>("MeshInstance3D");
-        oldMesh?.QueueFree();
+        var rng = new RandomNumberGenerator();
+        rng.Seed = (ulong)(_owner.NpcName.GetHashCode() + 12345);
+
+        // Gender: female names often end in a/e/i; rough heuristic
+        string n = _owner.NpcName.ToLower();
+        _female = n.EndsWith("a") || n.EndsWith("e") || n.EndsWith("i") || n.EndsWith("ra");
+
+        // Height: normal distribution around mean
+        float mean  = _female ? 1.65f : 1.80f;
+        float sigma = 0.08f;
+        _targetHeight = Mathf.Clamp(mean + (float)rng.RandfRange(-sigma*2, sigma*2), 1.5f, 2.0f);
+
+        _animTime = rng.RandfRange(0f, Mathf.Tau);
+        _lastPos  = _owner.GlobalPosition;
+
+        // Remove old capsule mesh if present
+        _owner.GetNodeOrNull<MeshInstance3D>("MeshInstance3D")?.QueueFree();
 
         _bodyRoot = new Node3D();
         _bodyRoot.Name  = "BodyRoot";
-        _bodyRoot.Scale = Vector3.One * NpcScale;
-        // Offset so feet touch the ground (NpcEntity is at Y=0.5 above terrain)
-        _bodyRoot.Position = new Vector3(0, -0.5f, 0);
+        _bodyRoot.Scale = Vector3.One * (_targetHeight / ModelHeight);
+        // NpcEntity spawns at Y=0 → BodyRoot at origin, feet touch ground
+        _bodyRoot.Position = Vector3.Zero;
         AddChild(_bodyRoot);
 
-        _lastPos   = _owner.GlobalPosition;
-        _animTime  = GD.RandRange(0.0, Mathf.Tau);
-        BuildHumanoid();
+        BuildBody();
+        BuildAccent();
+
+        // Raise name label above head
+        var lbl = _owner.GetNodeOrNull<Label3D>("Label3D");
+        if (lbl != null) lbl.Position = new Vector3(0, _targetHeight + 0.35f, 0);
     }
 
-    public override void _Process(double delta)
+    // ── Body construction ─────────────────────────────────────────────────
+    private void BuildBody()
     {
-        if (_owner == null) return;
-
-        // Tribe color live-update
-        var tribe = TribeManager.Instance?.GetTribe(_owner);
-        var newTribeColor = tribe?.Color ?? new Color(0.3f, 0.55f, 0.8f);
-        if (!newTribeColor.IsEqualApprox(_tribeColor))
-        {
-            _tribeColor = newTribeColor;
-            if (_tribeMat != null) _tribeMat.AlbedoColor = _tribeColor;
-        }
-
-        UpdateRoleAccent();
-        Animate(delta);
-    }
-
-    // ── Animation ─────────────────────────────────────────────────────────
-    private void Animate(double delta)
-    {
-        _animTime += delta;
-
-        var  curPos  = _owner.GlobalPosition;
-        var  movement = curPos - _lastPos;
-        float moved  = (float)movement.Length();
-        float speed  = (float)delta > 0.0001 ? moved / (float)delta : 0f;
-        _walkSpeed   = Mathf.Lerp(_walkSpeed, speed, 0.25f);
-
-        // Rotate to face movement direction (smooth)
-        var flatDir = new Vector3(movement.X, 0, movement.Z);
-        if (flatDir.LengthSquared() > 0.00001f)
-        {
-            float targetY = Mathf.Atan2(-flatDir.X, -flatDir.Z);
-            float curY    = _owner.Rotation.Y;
-            _owner.Rotation = new Vector3(0,
-                Mathf.LerpAngle(curY, targetY, 0.18f), 0);
-        }
-
-        _lastPos = curPos;
-
-        if (_walkSpeed > 0.3f)
-            AnimateWalk();
-        else
-            AnimateIdle();
-    }
-
-    private void AnimateWalk()
-    {
-        float t  = (float)_animTime * 2.5f * Mathf.Tau;
-        float sw = Mathf.Sin(t);
-        float swDeg = sw * 35f;
-
-        SetRot(_leftUpperLeg,   swDeg,  0f);
-        SetRot(_rightUpperLeg, -swDeg,  0f);
-        SetRot(_leftLowerLeg,   Mathf.Max(0f, sw) * 18f, 0f);
-        SetRot(_rightLowerLeg,  Mathf.Max(0f,-sw) * 18f, 0f);
-        SetRot(_leftUpperArm,  -swDeg * 0.7f,  20f);
-        SetRot(_rightUpperArm,  swDeg * 0.7f, -20f);
-
-        if (_bodyRoot != null)
-            _bodyRoot.Position = new Vector3(0, Mathf.Abs(sw) * 0.012f, 0);
-    }
-
-    private void AnimateIdle()
-    {
-        float t      = (float)_animTime * 0.8f * Mathf.Tau;
-        float breath = Mathf.Sin(t) * 0.005f;
-        if (_bodyRoot != null) _bodyRoot.Position = new Vector3(0, breath, 0);
-
-        LerpRot(_leftUpperArm,  0f,  20f, 0.06f);
-        LerpRot(_rightUpperArm, 0f, -20f, 0.06f);
-        LerpRot(_leftUpperLeg,  0f,  0f,  0.06f);
-        LerpRot(_rightUpperLeg, 0f,  0f,  0.06f);
-        LerpRot(_leftLowerLeg,  0f,  0f,  0.06f);
-        LerpRot(_rightLowerLeg, 0f,  0f,  0.06f);
-    }
-
-    private static void SetRot(Node3D node, float xDeg, float zDeg)
-    {
-        if (node == null) return;
-        node.Rotation = new Vector3(Mathf.DegToRad(xDeg), node.Rotation.Y, Mathf.DegToRad(zDeg));
-    }
-
-    private static void LerpRot(Node3D node, float xDeg, float zDeg, float t)
-    {
-        if (node == null) return;
-        var target = new Vector3(Mathf.DegToRad(xDeg), node.Rotation.Y, Mathf.DegToRad(zDeg));
-        node.Rotation = node.Rotation.Lerp(target, t);
-    }
-
-    // ── Build humanoid ────────────────────────────────────────────────────
-    private void BuildHumanoid()
-    {
-        _skinMat  = Mat(_skinColor);
+        _skinMat  = Mat(_female ? new Color(0.9f, 0.78f, 0.65f) : new Color(0.82f, 0.68f, 0.55f));
         _tribeMat = Mat(_tribeColor);
+        var darkMat  = Mat(Darken(_tribeColor, 0.25f));
+        var hairMat  = Mat(_female ? new Color(0.55f, 0.35f, 0.2f) : new Color(0.2f, 0.15f, 0.1f));
+        var legMat   = Mat(new Color(0.18f, 0.20f, 0.26f));
+        var bootMat  = Mat(new Color(0.22f, 0.16f, 0.10f));
 
-        // ── Head
-        _head = Part(MakeBox(0.28f, 0.30f, 0.26f), _skinMat,
-                     new Vector3(0, 1.62f, 0));
-        // Eyes (tiny dark boxes)
-        Part(MakeBox(0.06f, 0.04f, 0.04f), Mat(new Color(0.1f,0.1f,0.12f)),
-             new Vector3(-0.08f, 1.64f, 0.13f));
-        Part(MakeBox(0.06f, 0.04f, 0.04f), Mat(new Color(0.1f,0.1f,0.12f)),
-             new Vector3( 0.08f, 1.64f, 0.13f));
-        // Hair
-        Part(MakeBox(0.3f, 0.08f, 0.28f), Mat(_hairColor),
-             new Vector3(0, 1.79f, 0));
-
-        // ── Neck
-        Part(MakeCylinder(0.06f, 0.12f), _skinMat, new Vector3(0, 1.5f, 0));
+        float w = _female ? 0.85f : 1.0f; // width factor for feminine proportions
 
         // ── Torso
-        _torso = Part(MakeBox(0.38f, 0.45f, 0.22f), _tribeMat,
-                      new Vector3(0, 1.22f, 0));
+        Add(MakeBox(0.36f*w, 0.45f, 0.20f), _tribeMat, 0, WaistY + 0.22f);
+        // Hips/belt
+        Add(MakeBox(0.34f*w, 0.18f, 0.20f), darkMat, 0, WaistY + 0.02f);
 
-        // ── Hips / Pelvis
-        var hipMat = Mat(Darken(_tribeColor, 0.3f));
-        Part(MakeBox(0.36f, 0.18f, 0.22f), hipMat, new Vector3(0, 0.95f, 0));
+        // ── Head
+        Add(MakeBox(0.26f*w, 0.28f, 0.24f), _skinMat, 0, HeadCenterY);
+        // Hair
+        Add(MakeBox(0.28f*w, 0.08f, 0.26f), hairMat, 0, HeadCenterY + 0.17f);
+        if (_female) // longer hair sides
+        {
+            Add(MakeBox(0.06f, 0.18f, 0.22f), hairMat, -0.14f*w, HeadCenterY + 0.08f);
+            Add(MakeBox(0.06f, 0.18f, 0.22f), hairMat,  0.14f*w, HeadCenterY + 0.08f);
+        }
+        // Eyes
+        Add(MakeBox(0.055f, 0.04f, 0.02f), Mat(new Color(0.1f,0.1f,0.12f)), -0.075f*w, HeadCenterY+0.03f, 0.12f);
+        Add(MakeBox(0.055f, 0.04f, 0.02f), Mat(new Color(0.1f,0.1f,0.12f)),  0.075f*w, HeadCenterY+0.03f, 0.12f);
+        // Neck
+        Add(MakeCyl(0.055f, NeckY - HeadCenterY + 0.15f), _skinMat, 0, NeckY);
 
-        // ── Arms (pivot at shoulder for animation)
-        var armMat  = Mat(Darken(_tribeColor, 0.15f));
-        var handMat = _skinMat;
+        // ── Arms: shoulder pivot → upper arm → elbow pivot → lower arm → hand
+        _lShoulder = Pivot(-ShoulderW*w, ShoulderY, 0);
+        AddTo(_lShoulder, MakeCyl(0.065f, 0.27f), darkMat, 0, -0.135f);
+        _lElbow = PivotChild(_lShoulder, 0, -0.28f, 0);
+        AddTo(_lElbow, MakeCyl(0.055f, 0.24f), darkMat, 0, -0.12f);
+        AddTo(_lElbow, MakeBox(0.09f, 0.065f, 0.065f), _skinMat, 0, -0.27f);
 
-        // ── Arms (pivot at shoulder)
-        Pivot2(-0.26f, 1.44f, 0, armMat, MakeCylinder(0.07f, 0.28f),
-               new Vector3(0, -0.14f, 0), out _leftUpperArm, rotZ: 20f);
-        Part(MakeCylinder(0.06f, 0.26f), armMat,    new Vector3(-0.30f, 0.97f, 0), rotZ: 10f);
-        Part(MakeBox(0.10f, 0.07f, 0.07f), handMat, new Vector3(-0.33f, 0.82f, 0));
+        _rShoulder = Pivot( ShoulderW*w, ShoulderY, 0);
+        AddTo(_rShoulder, MakeCyl(0.065f, 0.27f), darkMat, 0, -0.135f);
+        _rElbow = PivotChild(_rShoulder, 0, -0.28f, 0);
+        AddTo(_rElbow, MakeCyl(0.055f, 0.24f), darkMat, 0, -0.12f);
+        AddTo(_rElbow, MakeBox(0.09f, 0.065f, 0.065f), _skinMat, 0, -0.27f);
 
-        Pivot2( 0.26f, 1.44f, 0, armMat, MakeCylinder(0.07f, 0.28f),
-                new Vector3(0, -0.14f, 0), out _rightUpperArm, rotZ: -20f);
-        Part(MakeCylinder(0.06f, 0.26f), armMat,    new Vector3( 0.30f, 0.97f, 0), rotZ: -10f);
-        Part(MakeBox(0.10f, 0.07f, 0.07f), handMat, new Vector3( 0.33f, 0.82f, 0));
+        // Initial arm angle (rest position: slight outward)
+        _lShoulder.RotationDegrees = new Vector3(0, 0,  22);
+        _rShoulder.RotationDegrees = new Vector3(0, 0, -22);
 
-        // ── Legs (pivot at hip)
-        var legMat  = Mat(new Color(0.2f, 0.22f, 0.28f));
-        var bootMat = Mat(new Color(0.25f, 0.18f, 0.12f));
+        // ── Legs: hip pivot → upper leg → knee pivot → lower leg → foot
+        _lHip = Pivot(-HipW*w, HipY, 0);
+        AddTo(_lHip, MakeCyl(0.085f, 0.37f), legMat, 0, -0.185f);
+        _lKnee = PivotChild(_lHip, 0, -0.375f, 0);
+        AddTo(_lKnee, MakeCyl(0.075f, 0.33f), legMat, 0, -0.165f);
+        AddTo(_lKnee, MakeBox(0.115f, 0.075f, 0.17f), bootMat, 0, -0.365f, 0.02f);
 
-        Pivot2(-0.12f, 0.86f, 0, legMat, MakeCylinder(0.09f, 0.34f),
-               new Vector3(0, -0.17f, 0), out _leftUpperLeg);
-        Pivot2(-0.12f, 0.50f, 0, legMat, MakeCylinder(0.08f, 0.30f),
-               new Vector3(0, -0.15f, 0), out _leftLowerLeg);
-        Part(MakeBox(0.13f, 0.08f, 0.18f), bootMat, new Vector3(-0.12f, 0.09f, 0.03f));
-
-        Pivot2( 0.12f, 0.86f, 0, legMat, MakeCylinder(0.09f, 0.34f),
-                new Vector3(0, -0.17f, 0), out _rightUpperLeg);
-        Pivot2( 0.12f, 0.50f, 0, legMat, MakeCylinder(0.08f, 0.30f),
-                new Vector3(0, -0.15f, 0), out _rightLowerLeg);
-        Part(MakeBox(0.13f, 0.08f, 0.18f), bootMat, new Vector3( 0.12f, 0.09f, 0.03f));
-
-        // Name label — float above head
-        var nameLabel = _owner.GetNodeOrNull<Label3D>("Label3D");
-        if (nameLabel != null) nameLabel.Position = new Vector3(0, 2.1f, 0);
-
-        AddRoleAccent();
+        _rHip = Pivot( HipW*w, HipY, 0);
+        AddTo(_rHip, MakeCyl(0.085f, 0.37f), legMat, 0, -0.185f);
+        _rKnee = PivotChild(_rHip, 0, -0.375f, 0);
+        AddTo(_rKnee, MakeCyl(0.075f, 0.33f), legMat, 0, -0.165f);
+        AddTo(_rKnee, MakeBox(0.115f, 0.075f, 0.17f), bootMat, 0, -0.365f, 0.02f);
     }
 
     // ── Role accent ───────────────────────────────────────────────────────
-    private Node3D _accentNode;
-
-    private void AddRoleAccent()
+    private void BuildAccent()
     {
         _accentNode?.QueueFree();
-        _accentNode = new Node3D();
-        _accentNode.Name = "RoleAccent";
+        _accentNode      = new Node3D();
+        _accentNode.Name = "Accent_" + _owner.SocialRole;
         _bodyRoot.AddChild(_accentNode);
-        BuildAccentForRole(_owner.SocialRole);
-    }
 
-    private void UpdateRoleAccent()
-    {
-        // Only rebuild if role changed
-        if (_accentNode?.Name == "RoleAccent_" + _owner.SocialRole.ToString()) return;
-        _accentNode?.QueueFree();
-        _accentNode = new Node3D();
-        _accentNode.Name = "RoleAccent_" + _owner.SocialRole.ToString();
-        _bodyRoot.AddChild(_accentNode);
-        BuildAccentForRole(_owner.SocialRole);
-    }
-
-    private void BuildAccentForRole(SocialRole role)
-    {
-        switch (role)
+        switch (_owner.SocialRole)
         {
             case SocialRole.Leader:
-                // Gold crown: 3 spikes on head
-                var goldMat = Mat(new Color(1f, 0.82f, 0.1f));
-                AccentPart(MakeCylinder(0.04f, 0.15f), goldMat, new Vector3(-0.09f, 1.93f,  0));
-                AccentPart(MakeCylinder(0.04f, 0.2f),  goldMat, new Vector3(0,      1.97f,  0));
-                AccentPart(MakeCylinder(0.04f, 0.15f), goldMat, new Vector3( 0.09f, 1.93f,  0));
-                // Crown band
-                AccentPart(MakeBox(0.32f, 0.06f, 0.30f), goldMat, new Vector3(0, 1.82f, 0));
+                var gold = Mat(new Color(1f, 0.82f, 0.12f));
+                AddTo(_accentNode, MakeBox(0.30f, 0.06f, 0.28f), gold, 0, HeadCenterY + 0.17f);
+                AddTo(_accentNode, MakeCyl(0.04f, 0.16f), gold, -0.09f, HeadCenterY + 0.29f);
+                AddTo(_accentNode, MakeCyl(0.04f, 0.20f), gold,  0.00f, HeadCenterY + 0.31f);
+                AddTo(_accentNode, MakeCyl(0.04f, 0.16f), gold,  0.09f, HeadCenterY + 0.29f);
                 break;
-
             case SocialRole.Hunter:
-                // Dark quiver on back
-                AccentPart(MakeBox(0.07f, 0.26f, 0.07f), Mat(new Color(0.35f,0.22f,0.1f)),
-                    new Vector3(0, 1.25f, -0.15f));
-                // Small bow
-                AccentPart(MakeBox(0.02f, 0.35f, 0.02f), Mat(new Color(0.45f,0.3f,0.15f)),
-                    new Vector3(-0.24f, 1.1f, 0.02f), rotZ: 15f);
+                AddTo(_accentNode, MakeBox(0.065f, 0.24f, 0.065f), Mat(new Color(0.35f,0.22f,0.1f)), 0, WaistY + 0.40f, -0.14f);
+                AddTo(_accentNode, MakeBox(0.018f, 0.32f, 0.018f), Mat(new Color(0.45f,0.3f,0.15f)), -0.22f, WaistY + 0.30f, 0);
                 break;
-
             case SocialRole.Builder:
-                // Tool belt
-                AccentPart(MakeBox(0.42f, 0.06f, 0.24f), Mat(new Color(0.5f,0.35f,0.15f)),
-                    new Vector3(0, 1.01f, 0));
-                // Hammer on belt
-                AccentPart(MakeBox(0.08f, 0.14f, 0.05f), Mat(new Color(0.55f,0.5f,0.45f)),
-                    new Vector3(0.18f, 0.98f, 0.12f));
+                AddTo(_accentNode, MakeBox(0.40f, 0.055f, 0.22f), Mat(new Color(0.5f,0.35f,0.15f)), 0, WaistY + 0.04f);
+                AddTo(_accentNode, MakeBox(0.075f, 0.13f, 0.045f), Mat(new Color(0.55f,0.5f,0.45f)), 0.16f, WaistY + 0.02f, 0.12f);
                 break;
-
             case SocialRole.Healer:
-                // White cross on torso
-                var wMat = Mat(new Color(0.9f, 0.9f, 0.9f));
-                AccentPart(MakeBox(0.06f, 0.25f, 0.03f), wMat, new Vector3(0, 1.22f, 0.12f));
-                AccentPart(MakeBox(0.22f, 0.06f, 0.03f), wMat, new Vector3(0, 1.25f, 0.12f));
+                var wh = Mat(new Color(0.9f, 0.9f, 0.9f));
+                AddTo(_accentNode, MakeBox(0.055f, 0.22f, 0.025f), wh, 0, WaistY + 0.28f, 0.11f);
+                AddTo(_accentNode, MakeBox(0.20f,  0.055f, 0.025f), wh, 0, WaistY + 0.32f, 0.11f);
                 break;
-
             case SocialRole.Gatherer:
-                // Leaf/bag on back
-                AccentPart(MakeBox(0.18f, 0.22f, 0.1f), Mat(new Color(0.4f,0.6f,0.25f)),
-                    new Vector3(0, 1.18f, -0.16f));
+                AddTo(_accentNode, MakeBox(0.17f, 0.20f, 0.09f), Mat(new Color(0.38f,0.58f,0.22f)), 0, WaistY + 0.28f, -0.14f);
                 break;
-
             case SocialRole.Farmer:
-                // Straw hat
-                AccentPart(MakeBox(0.38f, 0.05f, 0.36f), Mat(new Color(0.85f,0.72f,0.3f)),
-                    new Vector3(0, 1.83f, 0));
-                AccentPart(MakeCylinder(0.15f, 0.1f), Mat(new Color(0.8f,0.68f,0.28f)),
-                    new Vector3(0, 1.86f, 0));
+                var straw = Mat(new Color(0.85f, 0.72f, 0.3f));
+                AddTo(_accentNode, MakeBox(0.36f, 0.045f, 0.34f), straw, 0, HeadCenterY + 0.20f);
+                AddTo(_accentNode, MakeCyl(0.13f, 0.10f), straw, 0, HeadCenterY + 0.22f);
                 break;
         }
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────
-    private MeshInstance3D Pivot2(float px, float py, float pz,
-        StandardMaterial3D mat, Mesh mesh, Vector3 meshOffset,
-        out Node3D pivot_out, float rotX = 0, float rotZ = 0)
+    // ── Animation ─────────────────────────────────────────────────────────
+    public override void _Process(double delta)
     {
-        pivot_out = new Node3D();
-        pivot_out.Position = new Vector3(px, py, pz);
-        if (rotZ != 0) pivot_out.RotateZ(Mathf.DegToRad(rotZ));
-        _bodyRoot.AddChild(pivot_out);
-        var mi = new MeshInstance3D();
-        mi.Mesh = mesh; mi.Position = meshOffset;
-        mesh.SurfaceSetMaterial(0, mat);
-        pivot_out.AddChild(mi);
-        return mi;
+        if (_owner == null || _bodyRoot == null) return;
+
+        // Tribe color live-update
+        var tribe = TribeManager.Instance?.GetTribe(_owner);
+        var tc    = tribe?.Color ?? new Color(0.3f, 0.55f, 0.8f);
+        if (!tc.IsEqualApprox(_tribeColor))
+        {
+            _tribeColor = tc;
+            if (_tribeMat != null) _tribeMat.AlbedoColor = tc;
+        }
+
+        // Rebuild accent if role changed
+        if (_accentNode != null && _accentNode.Name != "Accent_" + _owner.SocialRole)
+            BuildAccent();
+
+        // Speed & direction
+        _animTime   += delta;
+        var curPos   = _owner.GlobalPosition;
+        var movement = curPos - _lastPos;
+        float moved  = (float)movement.Length();
+        float speed  = (float)delta > 0.0001 ? moved / (float)delta : 0f;
+        _walkSpeed   = Mathf.Lerp(_walkSpeed, speed, 0.3f);
+
+        // Face movement direction
+        var flatDir = new Vector3(movement.X, 0, movement.Z);
+        if (flatDir.LengthSquared() > 0.00001f)
+        {
+            float target = Mathf.Atan2(-flatDir.X, -flatDir.Z);
+            _owner.Rotation = new Vector3(0, Mathf.LerpAngle(_owner.Rotation.Y, target, 0.2f), 0);
+        }
+        _lastPos = curPos;
+
+        if (_walkSpeed > 0.25f) Walk(); else Idle();
     }
 
-    private MeshInstance3D Part(Mesh mesh, StandardMaterial3D mat,
-        Vector3 pos, float rotX = 0, float rotZ = 0)
+    private void Walk()
+    {
+        float t   = (float)_animTime * 2.4f * Mathf.Tau;
+        float sw  = Mathf.Sin(t);
+        float leg = sw * 32f;    // upper leg degrees
+        float kn  = Mathf.Max(0f, -sw) * 22f; // knee bend (only backward leg bends)
+
+        // Legs
+        if (_lHip  != null) _lHip.RotationDegrees  = new Vector3( leg, 0, 0);
+        if (_rHip  != null) _rHip.RotationDegrees   = new Vector3(-leg, 0, 0);
+        if (_lKnee != null) _lKnee.RotationDegrees  = new Vector3(Mathf.Max(0f,  sw)*22f, 0, 0);
+        if (_rKnee != null) _rKnee.RotationDegrees  = new Vector3(Mathf.Max(0f, -sw)*22f, 0, 0);
+
+        // Arms (opposite swing)
+        float arm = -sw * 22f;
+        if (_lShoulder != null) _lShoulder.RotationDegrees = new Vector3( arm, 0,  22f);
+        if (_rShoulder != null) _rShoulder.RotationDegrees = new Vector3(-arm, 0, -22f);
+
+        _bodyRoot.Position = new Vector3(0, Mathf.Abs(sw) * 0.012f, 0);
+    }
+
+    private void Idle()
+    {
+        float t      = (float)_animTime * 0.75f * Mathf.Tau;
+        float breath = Mathf.Sin(t) * 0.004f;
+
+        _bodyRoot.Position = new Vector3(0, breath, 0);
+
+        // Smooth return to rest
+        LerpDeg(_lHip,       Vector3.Zero, 0.07f);
+        LerpDeg(_rHip,       Vector3.Zero, 0.07f);
+        LerpDeg(_lKnee,      Vector3.Zero, 0.07f);
+        LerpDeg(_rKnee,      Vector3.Zero, 0.07f);
+        LerpDeg(_lShoulder,  new Vector3(0, 0,  22f), 0.07f);
+        LerpDeg(_rShoulder,  new Vector3(0, 0, -22f), 0.07f);
+        LerpDeg(_lElbow,     Vector3.Zero, 0.07f);
+        LerpDeg(_rElbow,     Vector3.Zero, 0.07f);
+    }
+
+    private static void LerpDeg(Node3D n, Vector3 targetDeg, float t)
+    {
+        if (n == null) return;
+        n.RotationDegrees = n.RotationDegrees.Lerp(targetDeg, t);
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────
+
+    /// <summary>Add a mesh directly to BodyRoot at absolute local position.</summary>
+    private void Add(Mesh mesh, StandardMaterial3D mat,
+        float x, float y, float z = 0)
     {
         var mi = new MeshInstance3D();
-        mi.Mesh     = mesh;
-        mi.Position = pos;
-        if (rotX != 0) mi.RotateX(Mathf.DegToRad(rotX));
-        if (rotZ != 0) mi.RotateZ(Mathf.DegToRad(rotZ));
+        mi.Mesh = mesh;
+        mi.Position = new Vector3(x, y, z);
         mesh.SurfaceSetMaterial(0, mat);
         _bodyRoot.AddChild(mi);
-        return mi;
     }
 
-    private void AccentPart(Mesh mesh, StandardMaterial3D mat,
-        Vector3 pos, float rotX = 0, float rotZ = 0)
+    /// <summary>Add a mesh to a specific parent node at LOCAL offset.</summary>
+    private void AddTo(Node3D parent, Mesh mesh, StandardMaterial3D mat,
+        float x, float y, float z = 0)
     {
         var mi = new MeshInstance3D();
-        mi.Mesh     = mesh;
-        mi.Position = pos;
-        if (rotX != 0) mi.RotateX(Mathf.DegToRad(rotX));
-        if (rotZ != 0) mi.RotateZ(Mathf.DegToRad(rotZ));
+        mi.Mesh = mesh;
+        mi.Position = new Vector3(x, y, z);
         mesh.SurfaceSetMaterial(0, mat);
-        _accentNode.AddChild(mi);
+        parent.AddChild(mi);
+    }
+
+    /// <summary>Create a pivot Node3D child of BodyRoot.</summary>
+    private Node3D Pivot(float x, float y, float z)
+    {
+        var p = new Node3D();
+        p.Position = new Vector3(x, y, z);
+        _bodyRoot.AddChild(p);
+        return p;
+    }
+
+    /// <summary>Create a pivot Node3D child of another Node3D.</summary>
+    private static Node3D PivotChild(Node3D parent, float x, float y, float z)
+    {
+        var p = new Node3D();
+        p.Position = new Vector3(x, y, z);
+        parent.AddChild(p);
+        return p;
     }
 
     private static BoxMesh MakeBox(float x, float y, float z)
@@ -351,13 +328,13 @@ public partial class NpcVisuals : Node3D
         return m;
     }
 
-    private static CylinderMesh MakeCylinder(float r, float h)
+    private static CylinderMesh MakeCyl(float r, float h)
     {
         var m = new CylinderMesh();
-        m.TopRadius = r * 0.85f;
+        m.TopRadius    = r * 0.85f;
         m.BottomRadius = r;
-        m.Height = h;
-        m.RadialSegments = 5; // Low poly — pentagon
+        m.Height       = h;
+        m.RadialSegments = 5;
         return m;
     }
 
@@ -365,10 +342,10 @@ public partial class NpcVisuals : Node3D
     {
         var m = new StandardMaterial3D();
         m.AlbedoColor = c;
-        m.ShadingMode = BaseMaterial3D.ShadingModeEnum.PerVertex; // flat shading
+        m.ShadingMode = BaseMaterial3D.ShadingModeEnum.PerVertex;
         return m;
     }
 
-    private static Color Darken(Color c, float amount)
-        => new Color(c.R - amount, c.G - amount, c.B - amount, c.A);
+    private static Color Darken(Color c, float a)
+        => new Color(Mathf.Max(0,c.R-a), Mathf.Max(0,c.G-a), Mathf.Max(0,c.B-a));
 }

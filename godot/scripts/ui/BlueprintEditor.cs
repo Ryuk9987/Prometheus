@@ -85,7 +85,8 @@ public partial class BlueprintEditor : CanvasLayer
         _root.AddChild(hbox);
 
         // Draw canvas (left, expands)
-        _drawCanvas = new DrawCanvas(this);
+        _drawCanvas = new DrawCanvas();
+        _drawCanvas.Editor = this;
         _drawCanvas.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
         _drawCanvas.SizeFlagsVertical   = Control.SizeFlags.ExpandFill;
         hbox.AddChild(_drawCanvas);

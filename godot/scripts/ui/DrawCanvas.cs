@@ -32,7 +32,7 @@ public partial class DrawCanvas : Control
     private string _stampId   = "";
     private string _stampName = "";
 
-    private readonly BlueprintEditor _editor;
+    public BlueprintEditor Editor { get; set; }
 
     // NPC reference size in world units → pixels at zoom 1
     private const float NpcHeightPx = 60f;
@@ -44,16 +44,11 @@ public partial class DrawCanvas : Control
         {"medicine","🌿"},{"astronomy","⭐"},{"metalwork","⚒"},
     };
 
-    public DrawCanvas(BlueprintEditor editor)
-    {
-        _editor = editor;
-        FocusMode = FocusModeEnum.All;
-    }
-
     public override void _Ready()
     {
         SetAnchorsPreset(LayoutPreset.FullRect);
         MouseFilter = MouseFilterEnum.Stop;
+        FocusMode   = FocusModeEnum.All;
     }
 
     // ── Public API ───────────────────────────────────────────────────────────
@@ -88,10 +83,11 @@ public partial class DrawCanvas : Control
     {
         if (@event is InputEventMouseButton mb)
         {
-            var local = ToLocal(mb.GlobalPosition);
+            // mb.Position is already local to this Control
+            var local = mb.Position;
 
-            if (mb.ButtonIndex == MouseButton.WheelUp)   { Zoom(+0.15f); _editor.UpdateZoomLabel(); return; }
-            if (mb.ButtonIndex == MouseButton.WheelDown)  { Zoom(-0.15f); _editor.UpdateZoomLabel(); return; }
+            if (mb.ButtonIndex == MouseButton.WheelUp)   { Zoom(+0.15f); Editor?.UpdateZoomLabel(); return; }
+            if (mb.ButtonIndex == MouseButton.WheelDown)  { Zoom(-0.15f); Editor?.UpdateZoomLabel(); return; }
 
             if (mb.ButtonIndex == MouseButton.Middle)
             {
@@ -125,7 +121,7 @@ public partial class DrawCanvas : Control
         }
         else if (@event is InputEventMouseMotion mm)
         {
-            var local = ToLocal(mm.GlobalPosition);
+            var local = mm.Position;
 
             if (_panning)
             {
@@ -141,7 +137,6 @@ public partial class DrawCanvas : Control
                     _currentStroke.Points.Add(wp);
                 else
                 {
-                    // For shapes: only keep start + current end
                     if (_currentStroke.Points.Count > 1)
                         _currentStroke.Points.RemoveAt(_currentStroke.Points.Count - 1);
                     _currentStroke.Points.Add(wp);

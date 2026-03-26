@@ -33,7 +33,10 @@ public partial class BuildOrderManager : Node
         foreach (var o in _orders)
         {
             if (o.Status == BuildOrderStatus.Done) continue;
+            // NPC must know the knowledge (any depth)
             if (!npc.Knowledge.Knows(o.KnowledgeId)) continue;
+            // Prefer orders from own tribe (or tribal-less orders)
+            if (!string.IsNullOrEmpty(o.TribeId) && o.TribeId != npc.TribeId) continue;
             float d = from.DistanceTo(o.GlobalPosition);
             if (d < bestD) { bestD = d; best = o; }
         }

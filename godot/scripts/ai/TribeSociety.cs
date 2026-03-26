@@ -33,7 +33,12 @@ public partial class TribeSociety : Node
     private double _reviewTimer = 0;
     private const double ReviewInterval = 30.0;
 
-    public override void _Ready() => Instance = this;
+    public override void _Ready()
+    {
+        Instance = this;
+        // Initial role assignment after NPCs are registered
+        CallDeferred(MethodName.ReviewAll);
+    }
 
     public override void _Process(double delta)
     {

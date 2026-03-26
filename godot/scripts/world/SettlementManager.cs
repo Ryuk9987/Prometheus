@@ -71,20 +71,29 @@ public partial class SettlementManager : Node
         // ── Rule 1: Campfire — only if NO real fire exists within 15m of tribe center
         bool hasNearbyFire = CampfireManager.Instance?.Campfires
             .Any(c => c.GlobalPosition.DistanceTo(center) < 15f) ?? false;
-        hasNearbyFire = hasNearbyFire || Count(BuildingType.Campfire) > 0;
+        bool hasPendingFire = BuildOrderManager.Instance?.Orders
+            .Any(o => (o.KnowledgeId == "campfire" || o.KnowledgeId == "campfire_stone")
+                      && o.GlobalPosition.DistanceTo(center) < 15f) ?? false;
+        hasNearbyFire = hasNearbyFire || Count(BuildingType.Campfire) > 0 || hasPendingFire;
         if (Has(knowledge, "fire", 0.1f) && !hasNearbyFire)
         {
             PlaceAutonomous(tribe, "campfire", BuildingType.Campfire, center, offset: Vector3.Zero);
             return;
         }
 
-        // ── Rule 2: Shelter — 1 per 3 members (max 4)
+        // Also count pending BuildOrders as "already being built"
+        int pendingOf(string kid) => BuildOrderManager.Instance?.Orders
+            .Count(o => o.KnowledgeId == kid && o.TribeId == tribe.Name) ?? 0;
+
+        // ── Rule 2: Shelter — 1 per 3 members (max 4), threshold 0.05
         int sheltersNeeded = Mathf.Min(members / 3, 4);
-        int sheltersHave   = Count(BuildingType.Shelter) + Count(BuildingType.Hut) + Count(BuildingType.WoodenHut);
-        if (Has(knowledge, "shelter", 0.2f) && sheltersHave < sheltersNeeded)
+        int sheltersHave   = Count(BuildingType.Shelter) + Count(BuildingType.Hut)
+                           + Count(BuildingType.WoodenHut)
+                           + pendingOf("shelter") + pendingOf("hut");
+        if (Has(knowledge, "shelter", 0.05f) && sheltersHave < sheltersNeeded)
         {
-            string kId = Has(knowledge, "wooden_shelter", 0.3f) ? "wooden_shelter"
-                       : Has(knowledge, "hut", 0.3f)            ? "hut"
+            string kId = Has(knowledge, "wooden_shelter", 0.2f) ? "wooden_shelter"
+                       : Has(knowledge, "hut", 0.2f)            ? "hut"
                        : "shelter";
             var bt = kId == "wooden_shelter" ? BuildingType.WoodenHut
                    : kId == "hut"            ? BuildingType.Hut
@@ -93,32 +102,35 @@ public partial class SettlementManager : Node
             return;
         }
 
-        // ── Rule 3: Storehouse — if tribe >= 5 members and storage known
-        if (members >= 5 && Has(knowledge, "storehouse", 0.3f) && Count(BuildingType.Storehouse) == 0)
+        // ── Rule 3: Storehouse — if tribe >= 5 members
+        if (members >= 5 && Has(knowledge, "storehouse", 0.15f)
+            && Count(BuildingType.Storehouse) == 0 && pendingOf("storehouse") == 0)
         {
             PlaceAutonomous(tribe, "storehouse", BuildingType.Storehouse,
                 center, SpiralOffset(1, 8f));
             return;
         }
 
-        // ── Rule 4: Workshop — if tools deep and no workshop
-        if (Has(knowledge, "axe", 0.4f) && Has(knowledge, "tools", 0.4f) && Count(BuildingType.Workshop) == 0)
+        // ── Rule 4: Workshop — if tools known
+        if (Has(knowledge, "axe", 0.25f) && Has(knowledge, "tools", 0.25f)
+            && Count(BuildingType.Workshop) == 0 && pendingOf("workshop") == 0)
         {
             PlaceAutonomous(tribe, "workshop", BuildingType.Workshop,
                 center, SpiralOffset(2, 8f));
             return;
         }
 
-        // ── Rule 5: Farm — if agriculture deep
-        if (Has(knowledge, "farming", 0.3f) && Count(BuildingType.Farm) < 2)
+        // ── Rule 5: Farm — if agriculture known
+        if (Has(knowledge, "farming", 0.2f) && Count(BuildingType.Farm) < 2)
         {
             PlaceAutonomous(tribe, "farm", BuildingType.Farm,
                 center, SpiralOffset(Count(BuildingType.Farm) + 3, 12f));
             return;
         }
 
-        // ── Rule 6: Well — if pottery known (can dig/store water)
-        if (Has(knowledge, "pottery", 0.3f) && Count(BuildingType.Well) == 0)
+        // ── Rule 6: Well — if pottery known
+        if (Has(knowledge, "pottery", 0.2f)
+            && Count(BuildingType.Well) == 0 && pendingOf("well") == 0)
         {
             PlaceAutonomous(tribe, "well", BuildingType.Well,
                 center, SpiralOffset(4, 7f));

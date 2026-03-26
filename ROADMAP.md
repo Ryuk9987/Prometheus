@@ -2,24 +2,26 @@
 
 ## Phase 1: Prototyp (Kern-Systeme) 🚧
 
-### Meilenstein 1.1 — Welt-Grundgerüst
-- [ ] Godot 4 Projekt (3D, C#) anlegen
-- [ ] Heightmap-Terrain mit einfacher Runtime-Deformation
-- [ ] Kamera: Strategische Vogelperspektive (Zoom, Orbit)
-- [ ] Biom-Platzhalter (Gras, Stein, Wasser)
+### Meilenstein 1.1 — Welt-Grundgerüst ✅ (2026-03-26)
+- [x] Godot 4 Projekt (3D, C#) anlegen
+- [x] Terrain: StaticBody3D + PlaneMesh (100x100), vorbereitet für Deformation
+- [x] Kamera: Strategische Vogelperspektive (Zoom, Orbit, WASD Pan)
+- [x] Beleuchtung: DirectionalLight3D (Sonne) + ProceduralSky
 
-### Meilenstein 1.2 — NPC Basis
-- [ ] NPC-Basisklasse: Position, Alter, Stamm
-- [ ] Persönlichkeitswerte (Neugier, Mut, Empathie)
-- [ ] Grundbedürfnisse: Hunger, Sicherheit
-- [ ] Einfache Bewegung (RandomWalk + Ziel-Navigation)
-- [ ] Visuelle Platzhalter (Capsule + Label)
+### Meilenstein 1.2 — NPC Basis ✅ (2026-03-26)
+- [x] NpcEntity.cs: Position, Alter, Stamm-ID, BeliefScore
+- [x] PersonalityComponent.cs: Neugier, Mut, Empathie, Misstrauen
+- [x] NeedsComponent.cs: Hunger (sinkt per WorldTick)
+- [x] KnowledgeComponent.cs: Dictionary<string, KnowledgeItem>, TeachTo()
+- [x] RandomWalk + NavigationAgent3D Bewegung
+- [x] CapsuleMesh + Label3D (Name über Kopf)
+- [x] NpcSpawner.cs: 20 NPCs, zufällig im Stammeslager
 
 ### Meilenstein 1.3 — Wissens-System
-- [ ] KnowledgeItem Datenstruktur (Name, Tiefe, Sicherheit)
-- [ ] Mündliche Übertragung (NPC A → NPC B mit Verlust)
-- [ ] Wissen als NPC-Inventar
-- [ ] Wissen stirbt mit NPC (ohne Weitergabe)
+- [ ] Wissen stirbt mit NPC (ohne Weitergabe) — Basis ✅ in KnowledgeComponent
+- [ ] Mündliche Übertragung aktiv triggern (NPCs in Nähe = Gespräch möglich)
+- [ ] Proximity-System: NPCs in Radius interagieren automatisch
+- [ ] Wissens-Verfall bei langer Nicht-Nutzung
 
 ### Meilenstein 1.4 — Glaube + Orakel
 - [ ] Glaubens-Score pro NPC (0.0–1.0)

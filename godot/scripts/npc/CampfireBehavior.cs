@@ -44,6 +44,10 @@ public partial class CampfireBehavior : Node
     {
         // Only active if NPC knows fire well enough
         if (!_owner.Knowledge.Knows("fire")) return false;
+        // Only unassigned, builders, or leaders spontaneously tend/build fire
+        var role = _owner.SocialRole;
+        if (role != SocialRole.Unassigned && role != SocialRole.Builder &&
+            role != SocialRole.Leader) return false;
         var fireKnowledge = _owner.Knowledge.Knowledge["fire"];
         if (fireKnowledge.Depth < 0.15f) return false;
 

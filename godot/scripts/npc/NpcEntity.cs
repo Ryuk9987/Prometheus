@@ -25,6 +25,7 @@ public partial class NpcEntity : Node3D
     public BuildWorkerBehavior   BuildWorker        { get; private set; }
     public ForagingBehavior      Foraging           { get; private set; }
     public NpcInventory          Inventory          { get; private set; }
+    public SocialRole            SocialRole         { get; set; } = SocialRole.Unassigned;
 
     private Label3D               _nameLabel;
     private RandomNumberGenerator _rng = new();
@@ -79,23 +80,56 @@ public partial class NpcEntity : Node3D
 
     public override void _Process(double delta)
     {
-        // Priority 1: Survival (hunger/thirst critical)
+        // Priority 1: Survival (hunger/thirst critical — always)
         if (Survival.Tick(delta)) return;
 
         // Priority 2: Oracle Tablet (believers seek knowledge)
         if (TabletSeek.Tick(delta)) return;
 
-        // Priority 3: Build campfire (if knows fire)
-        if (CampfireBuilder.Tick(delta)) return;
+        // Priority 3–6: Role-based behavior
+        switch (SocialRole)
+        {
+            case SocialRole.Builder:
+                // Builders focus on construction first, then gather materials
+                if (BuildWorker.Tick(delta)) return;
+                if (Foraging.Tick(delta)) return;
+                break;
 
-        // Priority 4: Forage (gather from nature, learn poison/edible)
-        if (Foraging.Tick(delta)) return;
+            case SocialRole.Hunter:
+                // Hunters focus on cooperative hunting
+                if (Cooperation.Tick(delta)) return;
+                break;
 
-        // Priority 5: Build worker (player build orders)
-        if (BuildWorker.Tick(delta)) return;
+            case SocialRole.Gatherer:
+                // Gatherers focus on foraging
+                if (Foraging.Tick(delta)) return;
+                if (Cooperation.Tick(delta)) return;
+                break;
 
-        // Priority 5: Community task (hunting, gathering)
-        if (Cooperation.Tick(delta)) return;
+            case SocialRole.Farmer:
+                // Farmers tend fields (cooperation task type = farm)
+                if (Cooperation.Tick(delta)) return;
+                if (Foraging.Tick(delta)) return;
+                break;
+
+            case SocialRole.Healer:
+                // Healers stay near camp, gather herbs
+                if (Foraging.Tick(delta)) return;
+                break;
+
+            case SocialRole.Leader:
+                // Leader organizes, stays near camp center
+                if (Cooperation.Tick(delta)) return;
+                break;
+
+            default:
+                // Unassigned: old behavior (campfire → forage → build → coop)
+                if (CampfireBuilder.Tick(delta)) return;
+                if (Foraging.Tick(delta)) return;
+                if (BuildWorker.Tick(delta)) return;
+                if (Cooperation.Tick(delta)) return;
+                break;
+        }
 
         // Priority 5: Rally to tribe at night
         if (ShouldRallyToTribe)

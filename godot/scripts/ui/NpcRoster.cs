@@ -220,10 +220,16 @@ public partial class NpcRoster : CanvasLayer
         nameRow.AddChild(nameLbl);
         infoCol.AddChild(nameRow);
 
+        string roleIcon = npc.SocialRole switch {
+            SocialRole.Leader   => "👑", SocialRole.Hunter  => "🏹",
+            SocialRole.Gatherer => "🌿", SocialRole.Builder => "🔨",
+            SocialRole.Healer   => "🩺", SocialRole.Farmer  => "🌾",
+            SocialRole.Guard    => "⚔",  _ => "·"
+        };
         var roleLbl = new Label();
-        roleLbl.Text = $"{npc.Cooperation.Role}  •  {(tribe != null ? tribe.Name : "kein Stamm")}";
+        roleLbl.Text = $"{roleIcon} {npc.SocialRole}  •  {(tribe != null ? tribe.Name : "kein Stamm")}";
         roleLbl.AddThemeFontSizeOverride("font_size", 10);
-        roleLbl.AddThemeColorOverride("font_color", new Color(0.5f,0.5f,0.55f));
+        roleLbl.AddThemeColorOverride("font_color", new Color(0.55f,0.55f,0.6f));
         infoCol.AddChild(roleLbl);
 
         // Activity

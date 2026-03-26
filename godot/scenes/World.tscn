@@ -17,6 +17,7 @@
 [ext_resource type="Script" path="res://scripts/world/DayCycle.cs" id="17"]
 [ext_resource type="Script" path="res://scripts/world/NatureManager.cs" id="24"]
 [ext_resource type="Script" path="res://scripts/world/SettlementManager.cs" id="25"]
+[ext_resource type="Script" path="res://scripts/ai/TribeSociety.cs" id="26"]
 [ext_resource type="Script" path="res://scripts/ai/TribeManager.cs" id="18"]
 [ext_resource type="Script" path="res://scripts/ui/PlayerBuildMenu.cs" id="19"]
 [ext_resource type="Script" path="res://scripts/world/BuildOrderManager.cs" id="20"]
@@ -118,6 +119,9 @@ script = ExtResource("24")
 
 [node name="SettlementManager" type="Node" parent="."]
 script = ExtResource("25")
+
+[node name="TribeSociety" type="Node" parent="."]
+script = ExtResource("26")
 
 [node name="TribeManager" type="Node" parent="."]
 script = ExtResource("18")

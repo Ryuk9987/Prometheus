@@ -68,8 +68,11 @@ public partial class SettlementManager : Node
 
         int Count(BuildingType t) => existing.TryGetValue(t, out int n) ? n : 0;
 
-        // ── Rule 1: Campfire — if fire known and no campfire nearby
-        if (Has(knowledge, "fire", 0.1f) && Count(BuildingType.Campfire) == 0)
+        // ── Rule 1: Campfire — only if NO real fire exists within 15m of tribe center
+        bool hasNearbyFire = CampfireManager.Instance?.Campfires
+            .Any(c => c.GlobalPosition.DistanceTo(center) < 15f) ?? false;
+        hasNearbyFire = hasNearbyFire || Count(BuildingType.Campfire) > 0;
+        if (Has(knowledge, "fire", 0.1f) && !hasNearbyFire)
         {
             PlaceAutonomous(tribe, "campfire", BuildingType.Campfire, center, offset: Vector3.Zero);
             return;

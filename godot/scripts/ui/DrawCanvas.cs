@@ -78,6 +78,15 @@ public partial class DrawCanvas : Control
         QueueRedraw();
     }
 
+    public void Undo()
+    {
+        if (_strokes.Count > 0)
+        {
+            _strokes.RemoveAt(_strokes.Count - 1);
+            QueueRedraw();
+        }
+    }
+
     public List<DrawnStroke> GetStrokes() => new List<DrawnStroke>(_strokes);
 
     // ── Input ────────────────────────────────────────────────────────────────

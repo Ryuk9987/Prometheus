@@ -33,8 +33,13 @@ public partial class BlueprintEditor : CanvasLayer
     {
         if (@event is InputEventKey k && k.Pressed && !k.Echo)
         {
-            if (k.Keycode == Key.F)         { ToggleOpen(); return; }
+            if (k.Keycode == Key.F)               { ToggleOpen(); return; }
             if (k.Keycode == Key.Escape && _open) { Close(); return; }
+            if (_open && k.Keycode == Key.Z && k.CtrlPressed)
+            {
+                _drawCanvas?.Undo();
+                return;
+            }
         }
         if (_open) _drawCanvas?.ForwardInput(@event);
     }
@@ -44,6 +49,8 @@ public partial class BlueprintEditor : CanvasLayer
     {
         _open = true;
         _root.Visible = true;
+        if (_statusLabel != null)
+            _statusLabel.Text = "Zeichne etwas — NPCs interpretieren es wenn du schließt. [Strg+Z = Rückgängig]";
         // Subscribe to interpretation events
         if (OracleTablet.Instance != null && !OracleTablet.Instance.IsConnected(
             OracleTablet.SignalName.Interpretation,
@@ -212,13 +219,21 @@ public partial class BlueprintEditor : CanvasLayer
         scroll.AddChild(bpList);
         toolVBox.AddChild(scroll);
 
-        // ── Clear ────────────────────────────────────────────────────
+        // ── Undo / Clear ────────────────────────────────────────────
         toolVBox.AddChild(new HSeparator());
-        toolVBox.AddChild(MakeButton("✕  Alles löschen", () => {
+        var editRow = new HBoxContainer();
+        var undoBtn = MakeButton("↩ Rückgängig", () => {
+            _drawCanvas?.Undo();
+            _statusLabel.Text = "Letzter Strich entfernt.";
+        });
+        undoBtn.TooltipText = "Strg+Z";
+        editRow.AddChild(undoBtn);
+        editRow.AddChild(MakeButton("✕ Löschen", () => {
             _drawCanvas.Clear();
             OracleTablet.Instance?.ClearTablet();
             _statusLabel.Text = "Canvas geleert.";
         }));
+        toolVBox.AddChild(editRow);
 
         AddChild(_root);
     }

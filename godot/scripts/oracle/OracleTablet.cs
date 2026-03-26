@@ -77,11 +77,12 @@ public partial class OracleTablet : Node3D
 
     public void SetDrawing(List<DrawnStroke> strokes)
     {
+        if (strokes == null || strokes.Count == 0) return; // don't overwrite with empty
         _currentDrawing   = strokes;
         Mode              = TabletMode.Draw;
-        HasContent        = strokes != null && strokes.Count > 0;
+        HasContent        = true;
         ActiveBlueprintId = "";
-        GD.Print($"[OracleTablet] Drawing submitted: {strokes?.Count ?? 0} strokes.");
+        GD.Print($"[OracleTablet] Drawing submitted: {strokes.Count} strokes. NPCs will interpret on next read.");
     }
 
     public void SetDrawMode()

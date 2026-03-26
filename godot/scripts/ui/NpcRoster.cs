@@ -209,6 +209,7 @@ public partial class NpcRoster : CanvasLayer
         hbox.AddChild(infoCol);
 
         var nameRow = new HBoxContainer();
+        bool isSocialLeader = npc.SocialRole == SocialRole.Leader;
         var nameLbl = new Label();
         nameLbl.Text = npc.NpcName + (isLeader ? " 👑" : "");
         nameLbl.AddThemeFontSizeOverride("font_size", 13);

@@ -86,8 +86,12 @@ public partial class TribeSociety : Node
             n.Personality.Empathy * 0.3f +
             n.Knowledge.Knowledge.Count * 0.02f).ToList();
 
-        // Clear all roles
-        foreach (var n in members) n.SocialRole = SocialRole.Unassigned;
+        // Clear all roles before re-assigning
+        foreach (var n in tribe.Members) n.SocialRole = SocialRole.Unassigned;
+        // Re-filter after clear (age check)
+        members = tribe.Members.Where(n => n.Age >= 14).ToList();
+        count = members.Count;
+        if (count == 0) return;
 
         // Assign leader
         int idx = 0;
@@ -127,6 +131,8 @@ public partial class TribeSociety : Node
     private static void AssignBest(List<NpcEntity> pool, ref int startIdx,
         SocialRole role, int count, System.Func<NpcEntity, float> score)
     {
+        if (count <= 0) return;
+        // Only pick from truly unassigned NPCs
         var unassigned = pool
             .Where(n => n.SocialRole == SocialRole.Unassigned)
             .OrderByDescending(score)

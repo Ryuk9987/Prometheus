@@ -176,18 +176,37 @@ public partial class SettlementManager : Node
     }
 
     // ── Build order placement ─────────────────────────────────────────────
+    private const float MinBuildingSpacing    = 4f;   // between buildings of same tribe
+    private const float MinSettlementSpacing  = 30f;  // between different tribe centers
+
     private void PlaceAutonomous(Tribe tribe, string knowledgeId, BuildingType bt,
         Vector3 center, Vector3 offset)
     {
-        // Don't place if already a pending BuildOrder here
         var pos = center + offset;
         pos.Y = 0.5f;
 
-        // Check for nearby duplicate
+        // Don't overlap existing buildings or orders
         bool tooClose = BuildOrderManager.Instance?.Orders
-            .Any(o => o.GlobalPosition.DistanceTo(pos) < 3f) ?? false;
-        tooClose = tooClose || _buildings.Any(b => b.GlobalPosition.DistanceTo(pos) < 3f);
+            .Any(o => o.GlobalPosition.DistanceTo(pos) < MinBuildingSpacing) ?? false;
+        tooClose = tooClose || _buildings.Any(b => b.GlobalPosition.DistanceTo(pos) < MinBuildingSpacing);
         if (tooClose) return;
+
+        // Splinter settlements must be far enough from other tribe centers
+        if (TribeManager.Instance != null)
+        {
+            foreach (var other in TribeManager.Instance.Tribes)
+            {
+                if (other.Name == tribe.Name) continue;
+                if (other.Center.DistanceTo(center) < MinSettlementSpacing)
+                {
+                    // Push building away from existing settlement
+                    var awayDir = (center - other.Center).Normalized();
+                    pos = other.Center + awayDir * MinSettlementSpacing + offset;
+                    pos.Y = 0.5f;
+                    break;
+                }
+            }
+        }
 
         var order = new BuildOrder();
         order.KnowledgeId = knowledgeId;

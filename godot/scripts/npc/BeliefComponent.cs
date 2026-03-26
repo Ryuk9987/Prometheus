@@ -9,7 +9,7 @@ using Godot;
 public partial class BeliefComponent : Node
 {
     [Export] public float Belief       { get; set; } = 0.1f;  // 0=none, 1=devout
-    [Export] public float BeliefDecay  { get; set; } = 0.002f; // passive decay per tick
+    [Export] public float BeliefDecay  { get; set; } = 0.0001f; // very slow decay (0.006/min)
 
     public bool CanHearOracle => Belief >= 0.3f;
 

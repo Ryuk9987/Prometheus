@@ -166,6 +166,91 @@ public static class KnowledgeCatalog
             KnowledgeCategory.Concept, "⚒", 0.6f,
             requires: new(){ "fire", "tools" },
             materials: new(){ new(ResourceType.Stone, 3f) });
+
+        // ── Recipe results (from KnowledgeRecipes) ─────────────────────────
+        Add("fire_control", "Feuerkontrolle", "Feuer beherrschen statt nur nutzen.",
+            KnowledgeCategory.Skill, "🔥", 0.2f);
+
+        Add("cooking",      "Kochen",         "Nahrung über Feuer erhitzen und zubereiten.",
+            KnowledgeCategory.Skill, "🍖", 0.25f);
+
+        Add("sharp_stone",  "Scharfer Stein", "Einen Stein zuspitzen für bessere Nutzung.",
+            KnowledgeCategory.Tool, "🪨", 0.15f);
+
+        Add("fire_starter", "Feuerstein",     "Feuer mit Steinen schlagen statt reiben.",
+            KnowledgeCategory.Tool, "✨", 0.25f);
+
+        Add("preservation", "Konservierung",  "Nahrung durch Trocknen und Hitze haltbar machen.",
+            KnowledgeCategory.Skill, "🧂", 0.3f);
+
+        Add("spear",        "Speer",          "Stein an Holz gebunden — Wurfwaffe.",
+            KnowledgeCategory.Tool, "🏹", 0.3f,
+            materials: new(){ new(ResourceType.Stone, 1f), new(ResourceType.Wood, 2f) });
+
+        Add("group_hunt",   "Gemeinschaftsjagd","Koordiniertes Jagen in der Gruppe.",
+            KnowledgeCategory.Skill, "🦌", 0.35f);
+
+        Add("pottery",      "Töpferei",        "Ton formen und im Feuer härten.",
+            KnowledgeCategory.Skill, "🏺", 0.3f);
+
+        Add("wooden_shelter","Holzhütte",      "Stabile Behausung aus Holzbalken.",
+            KnowledgeCategory.Building, "🪵", 0.35f,
+            materials: new(){ new(ResourceType.LogHardwood, 4f), new(ResourceType.Wood, 6f) });
+
+        Add("lumber",       "Holzverarbeitung","Baumstämme zu Balken bearbeiten.",
+            KnowledgeCategory.Skill, "🪚", 0.3f);
+
+        Add("charcoal",     "Holzkohle",       "Holz zu Kohle brennen für intensivere Hitze.",
+            KnowledgeCategory.Tool, "⬛", 0.3f);
+
+        Add("irrigation",   "Bewässerung",     "Wasser zu Feldern leiten.",
+            KnowledgeCategory.Skill, "💦", 0.35f);
+
+        Add("farming",      "Feldwirtschaft",  "Systematischer Ackerbau mit Werkzeug.",
+            KnowledgeCategory.Skill, "🌾", 0.4f);
+
+        Add("herbal_medicine","Kräutermedizin","Heilkräuter über Feuer zubereiten.",
+            KnowledgeCategory.Skill, "🌿", 0.35f);
+
+        Add("healer",       "Heiler",          "Spezialisierte Person für Heilkunde.",
+            KnowledgeCategory.Concept, "🩺", 0.4f);
+
+        Add("food_storage", "Vorratshaltung",  "Nahrung in Töpfen für Wintermonate aufbewahren.",
+            KnowledgeCategory.Concept, "🏛", 0.4f);
+
+        Add("village",      "Dorf",            "Feste Siedlung mit Häusern und Vorräten.",
+            KnowledgeCategory.Building, "🏘", 0.5f);
+
+        Add("specialization","Arbeitsteilung", "Jeder macht was er am besten kann.",
+            KnowledgeCategory.Concept, "⚙", 0.45f);
+
+        Add("metalworking", "Metallverarbeitung","Erze erhitzen und formen.",
+            KnowledgeCategory.Concept, "⚒", 0.5f,
+            materials: new(){ new(ResourceType.Stone, 3f), new(ResourceType.Resin, 1f) });
+
+        Add("surplus",      "Überschuss",      "Mehr erzeugen als man braucht.",
+            KnowledgeCategory.Concept, "📦", 0.45f);
+
+        Add("medicine_advanced","Fortgeschrittene Medizin","Systematische Heilkunde.",
+            KnowledgeCategory.Concept, "💊", 0.55f);
+
+        Add("hunting",      "Jagd",            "Systematisches Jagen von Tieren.",
+            KnowledgeCategory.Skill, "🏹", 0.2f);
+
+        Add("knowledge",    "Wissen",          "Das Konzept des Lernens selbst.",
+            KnowledgeCategory.Concept, "📖", 0.3f);
+
+        Add("stone",        "Stein",           "Harter Stein — Grundwerkzeug.",
+            KnowledgeCategory.Nature, "🪨", 0.1f);
+
+        Add("wood",         "Holz",            "Holz von Bäumen.",
+            KnowledgeCategory.Nature, "🪵", 0.1f);
+
+        Add("clay",         "Ton",             "Formbarer Ton aus feuchter Erde.",
+            KnowledgeCategory.Nature, "🟤", 0.15f);
+
+        Add("water",        "Wasser",          "Lebensnotwendiges Wasser.",
+            KnowledgeCategory.Nature, "💧", 0.1f);
     }
 
     private static void Add(string id, string name, string desc,

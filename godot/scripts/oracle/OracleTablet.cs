@@ -180,10 +180,17 @@ public partial class OracleTablet : Node3D
     {
         _flashing   = true;
         _flashTimer = 0;
-        _glow.LightColor  = new Color(1f, 0.95f, 0.8f); // warm white flash
-        _glow.OmniRange   = 20f;                          // light expands
+        _glow.LightColor  = new Color(1f, 0.95f, 0.8f);
+        _glow.OmniRange   = 20f;
         AttractNearbyNpcs();
         GD.Print("[OracleTablet] ✨ Flash triggered — NPCs attracted.");
+    }
+
+    /// <summary>External trigger from OracleEditor with idea context.</summary>
+    public void TriggerFlash(string ideaContext)
+    {
+        GD.Print($"[OracleTablet] Oracle reveals: {ideaContext}");
+        TriggerFlash();
     }
 
     private void AttractNearbyNpcs()

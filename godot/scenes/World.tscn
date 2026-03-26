@@ -1,9 +1,10 @@
-[gd_scene load_steps=10 format=3 uid="uid://world_main"]
+[gd_scene load_steps=11 format=3 uid="uid://world_main"]
 
 [ext_resource type="Script" path="res://scripts/core/GameManager.cs" id="1"]
 [ext_resource type="Script" path="res://scripts/camera/StrategyCameraController.cs" id="2"]
 [ext_resource type="Script" path="res://scripts/npc/NpcSpawner.cs" id="3"]
 [ext_resource type="PackedScene" path="res://scenes/Npc.tscn" id="4"]
+[ext_resource type="Script" path="res://scripts/ui/DebugOverlay.cs" id="5"]
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_1"]
 size = Vector2(100, 100)
@@ -72,3 +73,6 @@ script = ExtResource("3")
 NpcScene = ExtResource("4")
 SpawnCount = 20
 SpawnRadius = 15.0
+
+[node name="DebugOverlay" type="CanvasLayer" parent="."]
+script = ExtResource("5")

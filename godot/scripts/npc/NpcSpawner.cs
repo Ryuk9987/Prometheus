@@ -38,6 +38,14 @@ public partial class NpcSpawner : Node3D
             float z = rng.RandfRange(-SpawnRadius, SpawnRadius);
             npc.Position = new Vector3(x, 0.5f, z);
 
+            // First NPC is the "fire keeper" — knows fire at high depth
+            if (i == 0)
+            {
+                npc.Knowledge.Learn("fire", depth: 0.8f, confidence: 0.9f, sourceId: "oracle");
+                npc.NpcName = "Arak (Fire Keeper)";
+                GD.Print("[NpcSpawner] Arak knows fire — knowledge will spread.");
+            }
+
             GetParent().CallDeferred(Node.MethodName.AddChild, npc);
         }
 

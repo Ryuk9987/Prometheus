@@ -11,8 +11,9 @@ public partial class NpcEntity : Node3D
     public PersonalityComponent Personality { get; private set; }
     public NeedsComponent       Needs       { get; private set; }
     public KnowledgeComponent   Knowledge   { get; private set; }
+    public SocialComponent      Social      { get; private set; }
 
-    private Label3D _nameLabel;
+    private Label3D               _nameLabel;
     private RandomNumberGenerator _rng = new();
 
     private Vector3 _wanderTarget;
@@ -26,14 +27,14 @@ public partial class NpcEntity : Node3D
         Personality = GetNode<PersonalityComponent>("PersonalityComponent");
         Needs       = GetNode<NeedsComponent>("NeedsComponent");
         Knowledge   = GetNode<KnowledgeComponent>("KnowledgeComponent");
+        Social      = GetNode<SocialComponent>("SocialComponent");
         _nameLabel  = GetNode<Label3D>("Label3D");
 
         _nameLabel.Text = NpcName;
+        _wanderTarget   = GlobalPosition;
 
         _rng.Randomize();
         Personality.Randomize(_rng);
-
-        _wanderTarget = GlobalPosition;
 
         if (GameManager.Instance != null)
         {
@@ -64,6 +65,7 @@ public partial class NpcEntity : Node3D
     private void OnWorldTick(double delta)
     {
         Needs.OnWorldTick(delta);
+        Social.OnWorldTick(delta);
     }
 
     private void SetRandomWanderTarget()

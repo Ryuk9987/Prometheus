@@ -21,7 +21,8 @@ public class DrawnStroke
 
 public class PlacedStamp
 {
-    public string  StampId  { get; set; }
-    public Vector2 Position { get; set; }
-    public float   Scale    { get; set; } = 1f;
+    public string  StampId   { get; set; }
+    public Vector2 Position  { get; set; }
+    public float   Scale     { get; set; } = 1f;
+    public float   Rotation  { get; set; } = 0f;  // radians
 }

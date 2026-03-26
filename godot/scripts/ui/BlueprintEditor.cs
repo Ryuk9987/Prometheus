@@ -28,6 +28,7 @@ public partial class BlueprintEditor : CanvasLayer
             if (k.Keycode == Key.F)                { ToggleOpen(); return; }
             if (k.Keycode == Key.Escape && _open)  { Close(); return; }
             if (_open && k.Keycode == Key.Z && k.CtrlPressed) { _drawCanvas?.Undo(); return; }
+            if (_open && k.Keycode == Key.G) { _drawCanvas?.EnterGrabMode(); return; }
         }
         if (_open) _drawCanvas?.ForwardInput(@event);
     }
@@ -137,6 +138,10 @@ public partial class BlueprintEditor : CanvasLayer
         AddToolBtn(toolGrid, "○ Kreis",     DrawTool.Circle);
         AddToolBtn(toolGrid, "△ Dreieck",   DrawTool.Triangle);
         vbox.AddChild(toolGrid);
+
+        var grabBtn = MakeButton("🖐 Greifen (G)", () => _drawCanvas?.EnterGrabMode());
+        grabBtn.TooltipText = "Stamps verschieben & drehen (R)";
+        vbox.AddChild(grabBtn);
 
         // ── Zoom ──────────────────────────────────────────────────
         vbox.AddChild(new HSeparator());

@@ -4,16 +4,6 @@ using System.Collections.Generic;
 using System.Linq;
 
 /// <summary>
-/// A stamp instance placed on the canvas (id + position + scale).
-/// </summary>
-public class PlacedStamp
-{
-    public string  StampId  { get; set; }
-    public Vector2 Position { get; set; }
-    public float   Scale    { get; set; } = 1f;
-}
-
-/// <summary>
 /// What the player built on the canvas — as a recipe to decipher.
 /// </summary>
 public class Composition

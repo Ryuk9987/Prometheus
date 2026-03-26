@@ -2,8 +2,6 @@
 using Godot;
 using System.Collections.Generic;
 
-public enum DrawTool { Freehand, Line, Rectangle, Circle, Triangle }
-
 /// <summary>
 /// Full-screen Blueprint Editor.
 /// Left: canvas with stamp placement + freehand drawing.

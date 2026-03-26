@@ -3,10 +3,14 @@ using Godot;
 
 public partial class NpcEntity : Node3D
 {
-    [Export] public string NpcName     { get; set; } = "Unknown";
-    [Export] public int    Age         { get; set; } = 20;
-    [Export] public string TribeId     { get; set; } = "tribe_a";
-    [Export] public float  BeliefScore { get; set; } = 0.0f;
+    [Export] public string NpcName          { get; set; } = "Unknown";
+    [Export] public int    Age              { get; set; } = 20;
+    [Export] public string TribeId          { get; set; } = "tribe_a";
+    [Export] public float  BeliefScore      { get; set; } = 0.0f;
+    // Set before adding to tree — applied in _Ready()
+    public string StarterKnowledgeId        { get; set; } = "";
+    public float  StarterKnowledgeDepth     { get; set; } = 0.0f;
+    public float  StarterKnowledgeConfidence{ get; set; } = 0.0f;
 
     public PersonalityComponent Personality { get; private set; }
     public NeedsComponent       Needs       { get; private set; }
@@ -35,6 +39,10 @@ public partial class NpcEntity : Node3D
 
         _rng.Randomize();
         Personality.Randomize(_rng);
+
+        // Apply starter knowledge if set by spawner
+        if (StarterKnowledgeId != "")
+            Knowledge.Learn(StarterKnowledgeId, StarterKnowledgeDepth, StarterKnowledgeConfidence, "oracle");
 
         if (GameManager.Instance != null)
         {

@@ -45,34 +45,122 @@ public partial class NpcRoster : CanvasLayer
         var npcs = GameManager.Instance?.AllNpcs;
         if (npcs == null) return;
 
-        int total    = npcs.Count;
-        int tasks    = npcs.Count(n => n.Cooperation.HasTask);
+        int total     = npcs.Count;
         int believers = npcs.Count(n => n.Belief.CanHearOracle);
-        int tribes   = TribeManager.Instance?.Tribes.Count ?? 0;
+        int tribes    = TribeManager.Instance?.Tribes.Count ?? 0;
 
         _header.Text = $"PROMETHEUS — Bevölkerung   👤 {total}   🔮 {believers} Anhänger   🏕 {tribes} Stämme    [TAB schließen]";
 
         foreach (Node c in _list.GetChildren()) c.QueueFree();
 
-        foreach (var npc in npcs.OrderBy(n => n.NpcName))
-            _list.AddChild(BuildRow(npc));
+        // ── Group 1: Player's followers (believers in original tribe "tribe_alpha")
+        var followers = npcs
+            .Where(n => n.Belief.CanHearOracle && n.TribeId == "tribe_alpha")
+            .OrderByDescending(n => n.Belief.Belief)
+            .ToList();
+
+        // ── Group 2: Splinter believers (heard oracle but split off)
+        var splinters = npcs
+            .Where(n => n.Belief.CanHearOracle && n.TribeId != "tribe_alpha")
+            .OrderBy(n => n.TribeId).ThenBy(n => n.NpcName)
+            .ToList();
+
+        // ── Group 3: Unbelievers
+        var unbelievers = npcs
+            .Where(n => !n.Belief.CanHearOracle)
+            .OrderBy(n => n.NpcName)
+            .ToList();
+
+        if (followers.Count > 0)
+        {
+            _list.AddChild(SectionHeader($"🔮 DEINE ANHÄNGER  ({followers.Count})",
+                new Color(0.3f, 0.6f, 1f), new Color(0.06f, 0.1f, 0.2f)));
+            foreach (var npc in followers) _list.AddChild(BuildRow(npc, PlayerRelation.Follower));
+        }
+
+        if (splinters.Count > 0)
+        {
+            _list.AddChild(SectionHeader($"⚡ ABGESPALTENE  ({splinters.Count})",
+                new Color(1f, 0.6f, 0.2f), new Color(0.18f, 0.1f, 0.04f)));
+            string lastTribe = "";
+            foreach (var npc in splinters)
+            {
+                if (npc.TribeId != lastTribe)
+                {
+                    lastTribe = npc.TribeId;
+                    var tribe = TribeManager.Instance?.GetTribe(npc);
+                    _list.AddChild(TribeSubHeader(tribe?.Name ?? npc.TribeId, tribe?.Color ?? new Color(0.6f,0.4f,0.2f)));
+                }
+                _list.AddChild(BuildRow(npc, PlayerRelation.Splinter));
+            }
+        }
+
+        if (unbelievers.Count > 0)
+        {
+            _list.AddChild(SectionHeader($"👤 UNGLÄUBIGE  ({unbelievers.Count})",
+                new Color(0.4f, 0.4f, 0.45f), new Color(0.07f, 0.07f, 0.09f)));
+            foreach (var npc in unbelievers) _list.AddChild(BuildRow(npc, PlayerRelation.Unbeliever));
+        }
+    }
+
+    private enum PlayerRelation { Follower, Splinter, Unbeliever }
+
+    private static Control SectionHeader(string text, Color textCol, Color bgCol)
+    {
+        var panel = new PanelContainer();
+        var s = new StyleBoxFlat();
+        s.BgColor = bgCol;
+        s.BorderColor = textCol;
+        s.BorderWidthBottom = 2; s.BorderWidthTop = s.BorderWidthLeft = s.BorderWidthRight = 0;
+        panel.AddThemeStyleboxOverride("panel", s);
+
+        var m = new MarginContainer();
+        m.AddThemeConstantOverride("margin_left", 8);
+        m.AddThemeConstantOverride("margin_top",  4);
+        m.AddThemeConstantOverride("margin_bottom", 4);
+        panel.AddChild(m);
+
+        var lbl = new Label();
+        lbl.Text = text;
+        lbl.AddThemeFontSizeOverride("font_size", 13);
+        lbl.AddThemeColorOverride("font_color", textCol);
+        m.AddChild(lbl);
+        return panel;
+    }
+
+    private static Control TribeSubHeader(string tribeName, Color tribeColor)
+    {
+        var m = new MarginContainer();
+        m.AddThemeConstantOverride("margin_left", 16);
+        m.AddThemeConstantOverride("margin_top", 2);
+        var lbl = new Label();
+        lbl.Text = $"── {tribeName}";
+        lbl.AddThemeFontSizeOverride("font_size", 11);
+        lbl.AddThemeColorOverride("font_color", tribeColor);
+        m.AddChild(lbl);
+        return m;
     }
 
     // ── Row builder ───────────────────────────────────────────────────────
-    private Control BuildRow(NpcEntity npc)
+    private Control BuildRow(NpcEntity npc, PlayerRelation rel = PlayerRelation.Unbeliever)
     {
         var tribe    = TribeManager.Instance?.GetTribe(npc);
-        bool isFollower = npc.Belief.CanHearOracle;
         bool isLeader   = tribe?.Leader == npc;
 
         var row = new PanelContainer();
         var s   = new StyleBoxFlat();
-        s.BgColor = isFollower
-            ? new Color(0.08f, 0.12f, 0.18f)
-            : new Color(0.06f, 0.07f, 0.1f);
+        s.BgColor = rel switch {
+            PlayerRelation.Follower   => new Color(0.07f, 0.12f, 0.2f),
+            PlayerRelation.Splinter   => new Color(0.14f, 0.09f, 0.04f),
+            _                         => new Color(0.06f, 0.07f, 0.09f),
+        };
         s.BorderColor = isLeader
             ? new Color(1f, 0.8f, 0.2f)
-            : (isFollower ? new Color(0.3f, 0.5f, 0.8f) : new Color(0.15f, 0.17f, 0.22f));
+            : rel switch {
+                PlayerRelation.Follower  => new Color(0.25f, 0.5f, 0.9f),
+                PlayerRelation.Splinter  => new Color(0.8f, 0.45f, 0.1f),
+                _                        => new Color(0.13f, 0.15f, 0.18f),
+            };
         s.BorderWidthBottom = s.BorderWidthTop = s.BorderWidthLeft = s.BorderWidthRight = 1;
         s.CornerRadiusBottomLeft = s.CornerRadiusBottomRight =
         s.CornerRadiusTopLeft    = s.CornerRadiusTopRight    = 4;
@@ -113,7 +201,9 @@ public partial class NpcRoster : CanvasLayer
         nameLbl.AddThemeFontSizeOverride("font_size", 13);
         nameLbl.AddThemeColorOverride("font_color",
             isLeader ? new Color(1f,0.85f,0.3f) :
-            isFollower ? new Color(0.7f,0.85f,1f) : new Color(0.75f,0.75f,0.75f));
+            rel == PlayerRelation.Follower  ? new Color(0.65f,0.85f,1f) :
+            rel == PlayerRelation.Splinter  ? new Color(1f,0.65f,0.3f) :
+                                              new Color(0.65f,0.65f,0.65f));
         nameRow.AddChild(nameLbl);
         infoCol.AddChild(nameRow);
 
@@ -152,7 +242,9 @@ public partial class NpcRoster : CanvasLayer
             npc.Needs.IsThirsty      ? new Color(0.5f,0.7f,1f)   : new Color(0.25f,0.55f,1f)));
 
         barsCol.AddChild(MiniBar("🔮", npc.Belief.Belief,
-            isFollower ? new Color(0.4f,0.7f,1f) : new Color(0.35f,0.35f,0.4f)));
+            rel == PlayerRelation.Follower ? new Color(0.4f,0.7f,1f) :
+            rel == PlayerRelation.Splinter ? new Color(1f,0.55f,0.2f) :
+                                             new Color(0.35f,0.35f,0.4f)));
 
         // ── Knowledge pills
         var pillsFlow = new HFlowContainer();

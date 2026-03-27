@@ -161,13 +161,13 @@ public partial class DailyRoutineBehavior : Node
 
         if (shelter != null)
             return shelter.GlobalPosition + new Vector3(
-                GD.RandRange(-1.0f, 1.0f), 0, GD.RandRange(-1.0f, 1.0f));
+                (float)GD.RandRange(-1.0, 1.0), 0, (float)GD.RandRange(-1.0, 1.0));
 
         // Fall back to nearest campfire
         var fire = FindNearestCampfire();
         if (fire != null)
             return fire.GlobalPosition + new Vector3(
-                GD.RandRange(-2.0f, 2.0f), 0, GD.RandRange(-2.0f, 2.0f));
+                (float)GD.RandRange(-2.0, 2.0), 0, (float)GD.RandRange(-2.0, 2.0));
 
         // Last resort: stay put
         return _owner.GlobalPosition;

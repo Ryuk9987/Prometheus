@@ -23,6 +23,7 @@ public partial class NpcEntity : Node3D
     public CooperationComponent  Cooperation     { get; private set; }
     public CampfireBehavior      CampfireBuilder   { get; private set; }
     public BuildWorkerBehavior   BuildWorker        { get; private set; }
+    public LeaderBehavior        LeaderPlanning     { get; private set; }
     public ForagingBehavior      Foraging           { get; private set; }
     public NpcInventory          Inventory          { get; private set; }
     public WellbeingComponent    Wellbeing          { get; private set; }
@@ -53,6 +54,7 @@ public partial class NpcEntity : Node3D
         Cooperation     = GetNode<CooperationComponent>("CooperationComponent");
         CampfireBuilder = GetNode<CampfireBehavior>("CampfireBehavior");
         BuildWorker     = GetNode<BuildWorkerBehavior>("BuildWorkerBehavior");
+        LeaderPlanning  = GetNode<LeaderBehavior>("LeaderBehavior");
         Foraging        = GetNode<ForagingBehavior>("ForagingBehavior");
         Inventory       = GetNode<NpcInventory>("NpcInventory");
         Wellbeing       = GetNode<WellbeingComponent>("WellbeingComponent");
@@ -88,7 +90,10 @@ public partial class NpcEntity : Node3D
         // Priority 2: Oracle Tablet (believers seek knowledge)
         if (TabletSeek.Tick(delta)) return;
 
-        // Priority 3–6: Role-based behavior
+        // Priority 3: Tend campfires (any NPC that knows fire)
+        if (CampfireBuilder.Tick(delta)) return;
+
+        // Priority 4–7: Role-based behavior
         switch (SocialRole)
         {
             case SocialRole.Builder:
@@ -120,13 +125,14 @@ public partial class NpcEntity : Node3D
                 break;
 
             case SocialRole.Leader:
-                // Leader organizes, stays near camp center
+                // Leader plans settlement, then cooperates/forages
+                LeaderPlanning.Tick(delta);
                 if (Cooperation.Tick(delta)) return;
+                if (Foraging.Tick(delta)) return;
                 break;
 
             default:
-                // Unassigned: old behavior (campfire → forage → build → coop)
-                if (CampfireBuilder.Tick(delta)) return;
+                // Unassigned: forage → build → coop
                 if (Foraging.Tick(delta)) return;
                 if (BuildWorker.Tick(delta)) return;
                 if (Cooperation.Tick(delta)) return;

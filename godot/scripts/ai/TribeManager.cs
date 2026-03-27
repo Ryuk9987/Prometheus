@@ -134,6 +134,13 @@ public class Tribe
     public NpcEntity         Leader   { get; private set; }
     public Vector3           Center   { get; private set; }
 
+    /// <summary>
+    /// Permanent settlement center set by the Leader NPC.
+    /// Unlike Center (dynamic avg position), this stays fixed once established.
+    /// </summary>
+    public Vector3           SettlementCenter   { get; set; }
+    public bool              HasSettlementCenter { get; set; } = false;
+
     public Tribe(string name, Color color) { Name = name; Color = color; }
 
     public void AddMember(NpcEntity npc)

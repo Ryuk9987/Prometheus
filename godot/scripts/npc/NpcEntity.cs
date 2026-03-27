@@ -1,6 +1,7 @@
 #nullable disable
 using Godot;
 using System.Collections.Generic;
+using System.Linq;
 
 public partial class NpcEntity : Node3D
 {
@@ -133,8 +134,13 @@ public partial class NpcEntity : Node3D
                 break;
 
             case SocialRole.Leader:
-                // Leader plans settlement, then cooperates/forages
+                // Leader plans settlement
                 LeaderPlanning.Tick(delta);
+                // If no builder in tribe, leader builds own orders personally
+                bool tribeHasBuilder = TribeManager.Instance
+                    ?.GetTribe(this)?.Members
+                    .Any(n => n != this && n.SocialRole == SocialRole.Builder) ?? false;
+                if (!tribeHasBuilder && BuildWorker.Tick(delta)) return;
                 if (Cooperation.Tick(delta)) return;
                 if (Foraging.Tick(delta)) return;
                 break;

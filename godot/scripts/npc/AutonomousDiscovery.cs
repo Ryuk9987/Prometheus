@@ -112,9 +112,11 @@ public partial class AutonomousDiscovery : Node
         if (!Has("spear") && Has("tools", 0.2f) && Has("rope_making", 0.15f) && _huntEvents > 10)
             Discover("spear", 0.20f, 0.40f, "band Steinspitze an Holzschaft");
 
-        // ── UNTERKUNFT (shelter) — alle kennen Basis, vertiefen ───────
-        if (!Has("shelter", 0.2f) && Has("shelter") && _hungerEvents > 10)
-            Discover("shelter", 0.10f, 0.30f, "verbesserte Unterkunft durch Erfahrung");
+        // ── UNTERKUNFT (shelter) — Starter-Wissen vertiefen ───────────
+        // Only discover deeper shelter knowledge when really building/experiencing it
+        // Use a high enough target depth so the condition flips false after first discovery
+        if (!Has("shelter", 0.25f) && Has("shelter") && _buildEvents > 15)
+            Discover("shelter", 0.25f, 0.40f, "baute erste einfache Unterkunft");
 
         // ── VERBESSERTE HÜTTE (shelter_improved) ──────────────────────
         if (!Has("shelter_improved") && Has("shelter", 0.2f) && Has("wood") && _buildEvents > 15)

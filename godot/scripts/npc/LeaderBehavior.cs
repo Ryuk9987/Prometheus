@@ -49,10 +49,10 @@ public partial class LeaderBehavior : Node
         var tribe = GetTribe();
         if (tribe == null || tribe.Members.Count == 0) return;
 
-        // Set settlement center once (at leader's current position)
+        // Set settlement center once — use tribe's geographic center, not leader's lone position
         if (!tribe.HasSettlementCenter)
         {
-            tribe.SettlementCenter    = _owner.GlobalPosition;
+            tribe.SettlementCenter    = tribe.Center; // avg position of all members
             tribe.HasSettlementCenter = true;
             GD.Print($"[Leader] {_owner.NpcName} established settlement center at {tribe.SettlementCenter}");
         }

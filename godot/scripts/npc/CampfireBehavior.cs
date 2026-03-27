@@ -1,5 +1,6 @@
 #nullable disable
 using Godot;
+using System.Linq;
 
 /// <summary>
 /// NPC behavior for building and using campfires.

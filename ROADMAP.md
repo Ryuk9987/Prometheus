@@ -39,8 +39,26 @@
 
 ## Phase 2: Vertiefung
 
+### Stammes-Interaktionen & Diplomatie
+- [ ] **Territorium:** Jeder Stamm beansprucht einen Radius um sein SettlementCenter
+  - Ressourcen im eigenen Territorium werden bevorzugt genutzt
+  - Eindringlinge werden erkannt (zukünftig: vertrieben oder konfrontiert)
+- [ ] **Konkurrenzverhalten:** Stämme konkurrieren um Ressourcen und Land
+  - Überlappende Territorien → Spannung / Konflikt
+  - Knapper werdende Ressourcen erhöhen Aggressivität
+- [ ] **Diplomatie-Zustände:** Neutral / Verbündet / Feindselig
+  - Begegnungen an Stammesgrenzen können Zustand ändern
+  - Persönlichkeit des Leaders beeinflusst Diplomatie-Tendenz
+- [ ] **Wissenshandel:** Stämme tauschen Wissen bei Treffen
+  - Neutrales Treffen an Stammesgrenze möglich
+  - Tausch: z.B. Feuerstein-Technik gegen Heilkunde
+  - Nur bei Verbündet oder Neutral möglich
+- [ ] **Stammes-Gedächtnis:** Stämme merken sich Interaktionen
+  - Angriff → langfristig feindselig
+  - Geschenk / Wissenstausch → langfristig vertrauend
+
+### Weitere Phase 2 Features
 - [ ] Mehrere Stämme + Interaktionen
-- [ ] Handel zwischen Gruppen
 - [ ] Rivalen-Götter (andere Glaubensrichtungen)
 - [ ] Technologiebaum emergent (nicht fest vorgegeben)
 - [ ] Schrift als Gamechanger

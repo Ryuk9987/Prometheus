@@ -2,51 +2,32 @@
 using Godot;
 
 /// <summary>
-/// AnimalVisuals — procedural low-poly animal meshes with walk/idle animations.
+/// AnimalVisuals — redesigned low-poly animal meshes.
+/// Tuned for top-down/isometric camera (30-45° angle).
 ///
-/// All geometry built in code (no .tscn assets needed).
-/// Each animal has:
-///   - A body hierarchy with articulated legs
-///   - Idle animation (breathing / ear twitch)
-///   - Walk animation (leg swing)
-///   - Flee animation (faster leg swing + head down)
+/// Coordinate system: Animal.Position.Y = 0 (ground level).
+/// All geometry is built with positive Y above ground.
 ///
-/// Attach as child of Animal node.
+/// Deer  — total height ~1.4u, slender body, long neck, antlers
+/// Boar  — total height ~0.9u, wide powerful head, tusks, stocky
+/// Rabbit — total height ~0.55u, upright body, tall ears
 /// </summary>
 public partial class AnimalVisuals : Node3D
 {
-    private Animal    _owner;
-    private double    _animTimer = 0;
+    private Animal _owner;
+    private double _animTimer = 0;
 
-    // Articulated limb nodes
+    // Articulated nodes for animation
     private Node3D _body;
-    private Node3D _head;
     private Node3D _neck;
+    private Node3D _head;
     private Node3D _tail;
-    private Node3D _legFL, _legFR, _legBL, _legBR; // Front-Left/Right, Back-Left/Right
-    private Node3D _earL, _earR;   // Rabbit only
-    private Node3D _antlerL, _antlerR; // Deer only
-
-    // Shadow circle
-    private MeshInstance3D _shadow;
+    private Node3D _legFL, _legFR, _legBL, _legBR;
+    private Node3D _earL, _earR;
 
     public override void _Ready()
     {
         _owner = GetParent<Animal>();
-        BuildAnimal();
-    }
-
-    public override void _Process(double delta)
-    {
-        _animTimer += delta;
-        AnimateAnimal(delta);
-    }
-
-    // ═══════════════════════════════════════════════════════════════════
-    // BUILD
-    // ═══════════════════════════════════════════════════════════════════
-    private void BuildAnimal()
-    {
         switch (_owner.Type)
         {
             case AnimalType.Deer:   BuildDeer();   break;
@@ -56,326 +37,399 @@ public partial class AnimalVisuals : Node3D
         BuildShadow();
     }
 
-    // ── DEER ─────────────────────────────────────────────────────────────
+    public override void _Process(double delta)
+    {
+        if (_owner.IsDead) return;
+        _animTimer += delta;
+        Animate();
+        FaceVelocity();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // DEER — slender, tall, graceful
+    // ═══════════════════════════════════════════════════════════════════
     private void BuildDeer()
     {
-        var bodyColor = new Color(0.60f, 0.42f, 0.22f);  // warm brown
-        var bellyColor= new Color(0.80f, 0.68f, 0.50f);  // lighter belly
-        var darkColor = new Color(0.35f, 0.22f, 0.10f);  // dark legs
+        // Proportions (ground = Y 0):
+        //   Leg bottom:   Y = 0.00
+        //   Leg top:      Y = 0.60   (leg length = 0.60)
+        //   Body center:  Y = 0.75   (body height = 0.30, bottom at 0.60)
+        //   Neck base:    Y = 0.90
+        //   Head center:  Y = 1.20
 
-        // Body
-        _body = MakeNode("Body", Vector3.Zero);
+        var brown  = new Color(0.62f, 0.43f, 0.22f);
+        var light  = new Color(0.82f, 0.68f, 0.48f);
+        var dark   = new Color(0.32f, 0.20f, 0.10f);
+        var white  = new Color(0.96f, 0.94f, 0.88f);
+
+        // ── Body (elongated, slim)
+        _body = NewNode("Body", new Vector3(0, 0.75f, 0));
         AddChild(_body);
-        AddMesh(_body, MakeBox(0.45f, 0.30f, 0.80f), bodyColor, new Vector3(0, 0.55f, 0));
+        Mesh(_body, Box(0.28f, 0.30f, 0.70f), brown);
+        Mesh(_body, Box(0.16f, 0.06f, 0.50f), light, new Vector3(0, -0.12f, 0)); // belly
 
-        // Belly patch
-        AddMesh(_body, MakeBox(0.30f, 0.05f, 0.60f), bellyColor, new Vector3(0, 0.40f, 0));
+        // ── Neck (angled forward-up)
+        _neck = NewNode("Neck", new Vector3(0, 0.90f, 0.28f));
+        _body.GetParent().CallDeferred(Node.MethodName.AddChild, _neck); // sibling of body
+        AddChild(_neck);
+        Mesh(_neck, Box(0.12f, 0.38f, 0.12f), brown);
+        _neck.RotationDegrees = new Vector3(-38f, 0, 0);
 
-        // Neck
-        _neck = MakeNode("Neck", new Vector3(0, 0.65f, 0.35f));
-        _body.AddChild(_neck);
-        AddMesh(_neck, MakeBox(0.14f, 0.35f, 0.14f), bodyColor, new Vector3(0, 0.17f, 0));
-        _neck.RotationDegrees = new Vector3(-30f, 0, 0);
-
-        // Head
-        _head = MakeNode("Head", new Vector3(0, 0.28f, 0.05f));
+        // ── Head
+        _head = NewNode("Head", new Vector3(0, 0.30f, 0.05f));
         _neck.AddChild(_head);
-        AddMesh(_head, MakeBox(0.20f, 0.18f, 0.28f), bodyColor, new Vector3(0, 0, 0));
-        // Snout
-        AddMesh(_head, MakeBox(0.10f, 0.10f, 0.18f), bellyColor, new Vector3(0, -0.03f, 0.18f));
-        // Eyes
-        AddMesh(_head, MakeSphere(0.03f), new Color(0.1f,0.1f,0.1f), new Vector3( 0.09f, 0.04f, 0.10f));
-        AddMesh(_head, MakeSphere(0.03f), new Color(0.1f,0.1f,0.1f), new Vector3(-0.09f, 0.04f, 0.10f));
+        Mesh(_head, Box(0.18f, 0.16f, 0.26f), brown);
+        Mesh(_head, Box(0.10f, 0.09f, 0.16f), light, new Vector3(0, -0.04f, 0.17f)); // snout
+        Mesh(_head, Box(0.004f, 0.04f, 0.04f), new Color(0,0,0), new Vector3( 0.08f, 0.03f, 0.12f)); // eye L
+        Mesh(_head, Box(0.004f, 0.04f, 0.04f), new Color(0,0,0), new Vector3(-0.08f, 0.03f, 0.12f)); // eye R
+        // Ears (small, pointed)
+        Mesh(_head, Box(0.04f, 0.10f, 0.03f), brown, new Vector3( 0.10f, 0.10f, -0.02f));
+        Mesh(_head, Box(0.04f, 0.10f, 0.03f), brown, new Vector3(-0.10f, 0.10f, -0.02f));
 
-        // Antlers (simple Y-shape branches)
-        _antlerL = MakeNode("AntlerL", new Vector3( 0.07f, 0.09f, 0.02f));
-        _head.AddChild(_antlerL);
-        AddMesh(_antlerL, MakeBox(0.03f, 0.20f, 0.03f), darkColor, new Vector3(0, 0.10f, 0));
-        AddMesh(_antlerL, MakeBox(0.12f, 0.03f, 0.03f), darkColor, new Vector3(0, 0.18f, 0));
+        // ── Antlers (Y-fork shape)
+        var antL = NewNode("AntlerL", new Vector3( 0.06f, 0.09f, 0));
+        _head.AddChild(antL);
+        Mesh(antL, Box(0.025f, 0.22f, 0.025f), dark);                          // main
+        Mesh(antL, Box(0.14f, 0.025f, 0.025f), dark, new Vector3(0, 0.10f, 0)); // fork
+        var antR = NewNode("AntlerR", new Vector3(-0.06f, 0.09f, 0));
+        _head.AddChild(antR);
+        Mesh(antR, Box(0.025f, 0.22f, 0.025f), dark);
+        Mesh(antR, Box(0.14f, 0.025f, 0.025f), dark, new Vector3(0, 0.10f, 0));
 
-        _antlerR = MakeNode("AntlerR", new Vector3(-0.07f, 0.09f, 0.02f));
-        _head.AddChild(_antlerR);
-        AddMesh(_antlerR, MakeBox(0.03f, 0.20f, 0.03f), darkColor, new Vector3(0, 0.10f, 0));
-        AddMesh(_antlerR, MakeBox(0.12f, 0.03f, 0.03f), darkColor, new Vector3(0, 0.18f, 0));
+        // ── Tail
+        _tail = NewNode("Tail", new Vector3(0, 0.78f, -0.36f));
+        AddChild(_tail);
+        Mesh(_tail, Sphere(0.06f), white);
 
-        // Tail (white)
-        _tail = MakeNode("Tail", new Vector3(0, 0.60f, -0.40f));
-        _body.AddChild(_tail);
-        AddMesh(_tail, MakeSphere(0.07f), new Color(0.95f,0.95f,0.90f), Vector3.Zero);
-
-        // Legs (4)
-        _legFL = MakeLeg(_body, new Vector3( 0.18f, 0.40f,  0.25f), darkColor, 0.55f);
-        _legFR = MakeLeg(_body, new Vector3(-0.18f, 0.40f,  0.25f), darkColor, 0.55f);
-        _legBL = MakeLeg(_body, new Vector3( 0.18f, 0.40f, -0.25f), darkColor, 0.55f);
-        _legBR = MakeLeg(_body, new Vector3(-0.18f, 0.40f, -0.25f), darkColor, 0.55f);
+        // ── Legs (pivot at body bottom = Y 0.60, leg length 0.60)
+        float legY = 0.60f;
+        _legFL = MakeLeg(new Vector3( 0.12f, legY,  0.24f), dark, 0.60f);
+        _legFR = MakeLeg(new Vector3(-0.12f, legY,  0.24f), dark, 0.60f);
+        _legBL = MakeLeg(new Vector3( 0.12f, legY, -0.24f), dark, 0.60f);
+        _legBR = MakeLeg(new Vector3(-0.12f, legY, -0.24f), dark, 0.60f);
     }
 
-    // ── BOAR ──────────────────────────────────────────────────────────────
+    // ═══════════════════════════════════════════════════════════════════
+    // BOAR — stocky, aggressive, powerful
+    // ═══════════════════════════════════════════════════════════════════
     private void BuildBoar()
     {
-        var bodyColor = new Color(0.35f, 0.28f, 0.22f);  // dark grey-brown
-        var bristleColor = new Color(0.22f, 0.18f, 0.14f);
-        var tuskColor = new Color(0.92f, 0.88f, 0.75f);
+        // Proportions:
+        //   Leg bottom: Y = 0.00
+        //   Leg top:    Y = 0.36  (leg length = 0.36, short stocky)
+        //   Body center: Y = 0.52  (body height = 0.32, bottom at 0.36)
+        //   Head forward from body at same height
 
-        _body = MakeNode("Body", Vector3.Zero);
+        var darkBrown  = new Color(0.28f, 0.22f, 0.16f);
+        var midBrown   = new Color(0.40f, 0.32f, 0.22f);
+        var bristle    = new Color(0.18f, 0.14f, 0.10f);
+        var tusk       = new Color(0.94f, 0.90f, 0.78f);
+        var eyeColor   = new Color(0.05f, 0.05f, 0.05f);
+
+        // ── Body (barrel-shaped)
+        _body = NewNode("Body", new Vector3(0, 0.52f, 0));
         AddChild(_body);
-        // Stocky barrel body
-        AddMesh(_body, MakeBox(0.50f, 0.38f, 0.70f), bodyColor, new Vector3(0, 0.38f, 0));
-        // Bristle ridge along back
-        AddMesh(_body, MakeBox(0.12f, 0.10f, 0.65f), bristleColor, new Vector3(0, 0.73f, 0));
+        Mesh(_body, Box(0.44f, 0.32f, 0.62f), midBrown);
+        // Bristle mohawk on back
+        Mesh(_body, Box(0.08f, 0.12f, 0.55f), bristle, new Vector3(0, 0.22f, 0));
+        // Belly (lighter)
+        Mesh(_body, Box(0.28f, 0.05f, 0.45f), new Color(0.52f, 0.42f, 0.30f), new Vector3(0,-0.15f,0));
 
-        // Head (large, low)
-        _head = MakeNode("Head", new Vector3(0, 0.42f, 0.40f));
-        _body.AddChild(_head);
-        AddMesh(_head, MakeBox(0.35f, 0.28f, 0.38f), bodyColor, Vector3.Zero);
-        // Snout disc
-        AddMesh(_head, MakeCylinder(0.10f, 0.08f), bodyColor, new Vector3(0, -0.04f, 0.20f));
-        // Nostrils
-        AddMesh(_head, MakeSphere(0.03f), bristleColor, new Vector3( 0.05f, -0.03f, 0.24f));
-        AddMesh(_head, MakeSphere(0.03f), bristleColor, new Vector3(-0.05f, -0.03f, 0.24f));
-        // Small eyes
-        AddMesh(_head, MakeSphere(0.025f), new Color(0.05f,0.05f,0.05f), new Vector3( 0.14f, 0.05f, 0.14f));
-        AddMesh(_head, MakeSphere(0.025f), new Color(0.05f,0.05f,0.05f), new Vector3(-0.14f, 0.05f, 0.14f));
-        // Tusks
-        AddMesh(_head, MakeBox(0.04f, 0.04f, 0.12f), tuskColor, new Vector3( 0.12f,-0.08f, 0.22f));
-        AddMesh(_head, MakeBox(0.04f, 0.04f, 0.12f), tuskColor, new Vector3(-0.12f,-0.08f, 0.22f));
-        // Small ears
-        AddMesh(_head, MakeBox(0.07f, 0.10f, 0.04f), bristleColor, new Vector3( 0.16f, 0.14f, 0));
-        AddMesh(_head, MakeBox(0.07f, 0.10f, 0.04f), bristleColor, new Vector3(-0.16f, 0.14f, 0));
+        // ── Head (large, low, menacing)
+        _head = NewNode("Head", new Vector3(0, 0.52f, 0.40f));
+        AddChild(_head);
+        Mesh(_head, Box(0.38f, 0.30f, 0.42f), midBrown);
+        // Heavy brow ridge
+        Mesh(_head, Box(0.34f, 0.06f, 0.10f), darkBrown, new Vector3(0, 0.14f, 0.18f));
+        // Snout (disc)
+        Mesh(_head, Box(0.22f, 0.16f, 0.14f), midBrown, new Vector3(0,-0.03f, 0.23f));
+        Mesh(_head, Sphere(0.06f), darkBrown, new Vector3(0,-0.04f, 0.30f)); // nose tip
+        Mesh(_head, Sphere(0.025f), bristle, new Vector3( 0.06f,-0.04f, 0.30f)); // nostril L
+        Mesh(_head, Sphere(0.025f), bristle, new Vector3(-0.06f,-0.04f, 0.30f)); // nostril R
+        // Eyes (small, deep-set)
+        Mesh(_head, Sphere(0.035f), eyeColor, new Vector3( 0.16f, 0.08f, 0.17f));
+        Mesh(_head, Sphere(0.035f), eyeColor, new Vector3(-0.16f, 0.08f, 0.17f));
+        // Tusks (angled outward and up)
+        var tuskL = NewNode("TuskL", new Vector3( 0.14f,-0.10f, 0.20f));
+        _head.AddChild(tuskL);
+        Mesh(tuskL, Box(0.04f, 0.05f, 0.16f), tusk);
+        tuskL.RotationDegrees = new Vector3(-15f, 20f, 0);
+        var tuskR = NewNode("TuskR", new Vector3(-0.14f,-0.10f, 0.20f));
+        _head.AddChild(tuskR);
+        Mesh(tuskR, Box(0.04f, 0.05f, 0.16f), tusk);
+        tuskR.RotationDegrees = new Vector3(-15f,-20f, 0);
+        // Ears (stubby, pinned back)
+        Mesh(_head, Box(0.08f, 0.10f, 0.05f), darkBrown, new Vector3( 0.18f, 0.15f,-0.05f));
+        Mesh(_head, Box(0.08f, 0.10f, 0.05f), darkBrown, new Vector3(-0.18f, 0.15f,-0.05f));
 
-        // Short tail
-        _tail = MakeNode("Tail", new Vector3(0, 0.50f, -0.35f));
-        _body.AddChild(_tail);
-        AddMesh(_tail, MakeBox(0.04f, 0.10f, 0.04f), bristleColor, new Vector3(0, 0.05f, 0));
+        // ── Tail (curly — just a small twisted cylinder)
+        _tail = NewNode("Tail", new Vector3(0, 0.55f,-0.32f));
+        AddChild(_tail);
+        Mesh(_tail, Sphere(0.05f), darkBrown);
 
-        // Short stocky legs
-        _legFL = MakeLeg(_body, new Vector3( 0.18f, 0.38f,  0.22f), bristleColor, 0.38f);
-        _legFR = MakeLeg(_body, new Vector3(-0.18f, 0.38f,  0.22f), bristleColor, 0.38f);
-        _legBL = MakeLeg(_body, new Vector3( 0.18f, 0.38f, -0.22f), bristleColor, 0.38f);
-        _legBR = MakeLeg(_body, new Vector3(-0.18f, 0.38f, -0.22f), bristleColor, 0.38f);
+        // ── Short stocky legs
+        float legY = 0.36f;
+        _legFL = MakeLeg(new Vector3( 0.17f, legY,  0.20f), darkBrown, 0.36f);
+        _legFR = MakeLeg(new Vector3(-0.17f, legY,  0.20f), darkBrown, 0.36f);
+        _legBL = MakeLeg(new Vector3( 0.17f, legY, -0.20f), darkBrown, 0.36f);
+        _legBR = MakeLeg(new Vector3(-0.17f, legY, -0.20f), darkBrown, 0.36f);
     }
 
-    // ── RABBIT ────────────────────────────────────────────────────────────
+    // ═══════════════════════════════════════════════════════════════════
+    // RABBIT — small, upright, long ears pointing straight up
+    // ═══════════════════════════════════════════════════════════════════
     private void BuildRabbit()
     {
-        var furColor  = new Color(0.80f, 0.72f, 0.60f); // sandy beige
-        var bellyColor= new Color(0.95f, 0.92f, 0.85f);
-        var darkColor = new Color(0.45f, 0.35f, 0.25f);
+        // Proportions:
+        //   Tiny legs: Y 0–0.16
+        //   Body center: Y 0.26
+        //   Head: Y 0.42
+        //   Ear tips: Y ~0.75
 
-        _body = MakeNode("Body", Vector3.Zero);
+        var fur   = new Color(0.82f, 0.76f, 0.64f);
+        var belly = new Color(0.96f, 0.94f, 0.88f);
+        var inner = new Color(0.90f, 0.60f, 0.62f); // pink ear inside
+        var dark  = new Color(0.40f, 0.32f, 0.22f);
+        var eye   = new Color(0.55f, 0.10f, 0.12f); // red eyes
+
+        // ── Body (egg-shaped: wider at bottom)
+        _body = NewNode("Body", new Vector3(0, 0.26f, 0));
         AddChild(_body);
-        // Round body
-        AddMesh(_body, MakeSphere(0.18f), furColor, new Vector3(0, 0.22f, 0));
-        // Belly
-        AddMesh(_body, MakeSphere(0.12f), bellyColor, new Vector3(0, 0.20f, 0.05f));
+        Mesh(_body, Box(0.20f, 0.22f, 0.24f), fur);
+        Mesh(_body, Box(0.12f, 0.14f, 0.16f), belly, new Vector3(0, 0, 0.05f)); // belly patch
 
-        // Head
-        _head = MakeNode("Head", new Vector3(0, 0.32f, 0.14f));
-        _body.AddChild(_head);
-        AddMesh(_head, MakeSphere(0.13f), furColor, Vector3.Zero);
-        // Cheeks
-        AddMesh(_head, MakeSphere(0.07f), bellyColor, new Vector3( 0.06f,-0.03f, 0.07f));
-        AddMesh(_head, MakeSphere(0.07f), bellyColor, new Vector3(-0.06f,-0.03f, 0.07f));
-        // Nose
-        AddMesh(_head, MakeSphere(0.025f), new Color(0.9f,0.5f,0.55f), new Vector3(0,-0.03f, 0.12f));
-        // Eyes
-        AddMesh(_head, MakeSphere(0.03f), new Color(0.6f,0.1f,0.1f), new Vector3( 0.07f, 0.04f, 0.09f));
-        AddMesh(_head, MakeSphere(0.03f), new Color(0.6f,0.1f,0.1f), new Vector3(-0.07f, 0.04f, 0.09f));
+        // ── Head (round, on top of body, slightly forward)
+        _head = NewNode("Head", new Vector3(0, 0.42f, 0.08f));
+        AddChild(_head);
+        Mesh(_head, Sphere(0.13f), fur);
+        Mesh(_head, Sphere(0.07f), belly, new Vector3(0,-0.03f, 0.08f)); // cheek/muzzle
+        Mesh(_head, Sphere(0.022f), new Color(0.8f,0.3f,0.4f), new Vector3(0,-0.02f, 0.14f)); // nose
+        Mesh(_head, Sphere(0.030f), eye, new Vector3( 0.07f, 0.03f, 0.10f));
+        Mesh(_head, Sphere(0.030f), eye, new Vector3(-0.07f, 0.03f, 0.10f));
 
-        // Long ears
-        _earL = MakeNode("EarL", new Vector3( 0.05f, 0.10f, 0));
+        // ── Ears — TALL, pointing straight up from head
+        // Ear pivot at top of head
+        _earL = NewNode("EarL", new Vector3( 0.045f, 0.12f, -0.01f));
         _head.AddChild(_earL);
-        AddMesh(_earL, MakeBox(0.05f, 0.22f, 0.03f), furColor,  new Vector3(0, 0.11f, 0));
-        AddMesh(_earL, MakeBox(0.025f,0.18f, 0.015f), new Color(0.9f,0.5f,0.55f), new Vector3(0, 0.11f, 0.008f));
+        Mesh(_earL, Box(0.05f, 0.26f, 0.03f), fur,   new Vector3(0, 0.13f, 0));
+        Mesh(_earL, Box(0.03f, 0.20f, 0.015f), inner, new Vector3(0, 0.13f, 0.01f));
 
-        _earR = MakeNode("EarR", new Vector3(-0.05f, 0.10f, 0));
+        _earR = NewNode("EarR", new Vector3(-0.045f, 0.12f, -0.01f));
         _head.AddChild(_earR);
-        AddMesh(_earR, MakeBox(0.05f, 0.22f, 0.03f), furColor,  new Vector3(0, 0.11f, 0));
-        AddMesh(_earR, MakeBox(0.025f,0.18f, 0.015f), new Color(0.9f,0.5f,0.55f), new Vector3(0, 0.11f, 0.008f));
+        Mesh(_earR, Box(0.05f, 0.26f, 0.03f), fur,   new Vector3(0, 0.13f, 0));
+        Mesh(_earR, Box(0.03f, 0.20f, 0.015f), inner, new Vector3(0, 0.13f, 0.01f));
 
-        // Fluffy tail
-        _tail = MakeNode("Tail", new Vector3(0, 0.25f, -0.16f));
-        _body.AddChild(_tail);
-        AddMesh(_tail, MakeSphere(0.07f), bellyColor, Vector3.Zero);
+        // ── Fluffy tail (back, white)
+        _tail = NewNode("Tail", new Vector3(0, 0.28f,-0.13f));
+        AddChild(_tail);
+        Mesh(_tail, Sphere(0.07f), belly);
 
-        // Small legs
-        _legFL = MakeLeg(_body, new Vector3( 0.09f, 0.22f,  0.10f), darkColor, 0.20f);
-        _legFR = MakeLeg(_body, new Vector3(-0.09f, 0.22f,  0.10f), darkColor, 0.20f);
-        _legBL = MakeLeg(_body, new Vector3( 0.09f, 0.22f, -0.08f), darkColor, 0.24f); // longer back legs
-        _legBR = MakeLeg(_body, new Vector3(-0.09f, 0.22f, -0.08f), darkColor, 0.24f);
+        // ── Tiny legs
+        float legY = 0.16f;
+        _legFL = MakeLeg(new Vector3( 0.08f, legY,  0.08f), dark, 0.16f);
+        _legFR = MakeLeg(new Vector3(-0.08f, legY,  0.08f), dark, 0.16f);
+        _legBL = MakeLeg(new Vector3( 0.09f, legY, -0.06f), dark, 0.20f); // longer hind legs
+        _legBR = MakeLeg(new Vector3(-0.09f, legY, -0.06f), dark, 0.20f);
     }
 
-    // ── Shadow ────────────────────────────────────────────────────────────
+    // ═══════════════════════════════════════════════════════════════════
+    // SHADOW
+    // ═══════════════════════════════════════════════════════════════════
     private void BuildShadow()
     {
-        float r = _owner.Type switch { AnimalType.Deer => 0.35f, AnimalType.Boar => 0.30f, _ => 0.15f };
-        _shadow = new MeshInstance3D();
+        float r = _owner.Type switch {
+            AnimalType.Deer   => 0.28f,
+            AnimalType.Boar   => 0.26f,
+            AnimalType.Rabbit => 0.12f,
+            _ => 0.20f
+        };
+        var mi = new MeshInstance3D();
         var mat = new StandardMaterial3D();
-        mat.AlbedoColor = new Color(0, 0, 0, 0.30f);
+        mat.AlbedoColor = new Color(0, 0, 0, 0.28f);
         mat.Transparency = BaseMaterial3D.TransparencyEnum.Alpha;
+        mat.ShadingMode  = BaseMaterial3D.ShadingModeEnum.Unshaded;
         var cyl = new CylinderMesh();
-        cyl.TopRadius = r; cyl.BottomRadius = r; cyl.Height = 0.01f;
+        cyl.TopRadius = r; cyl.BottomRadius = r * 1.3f; cyl.Height = 0.01f;
         cyl.SurfaceSetMaterial(0, mat);
-        _shadow.Mesh = cyl;
-        _shadow.Position = new Vector3(0, 0.01f, 0);
-        AddChild(_shadow);
+        mi.Mesh = cyl;
+        mi.Position = new Vector3(0, 0.005f, 0);
+        AddChild(mi);
     }
 
     // ═══════════════════════════════════════════════════════════════════
     // ANIMATION
     // ═══════════════════════════════════════════════════════════════════
-    private void AnimateAnimal(double delta)
+    private void Animate()
     {
-        if (_owner.IsDead) return;
-
-        bool fleeing = _owner.IsFleeing; // need to expose this
-        float speed  = fleeing ? 3.0f : 1.0f;
-        float t      = (float)_animTimer;
+        float t     = (float)_animTimer;
+        bool  flee  = _owner.IsFleeing;
+        float speed = flee ? 2.8f : (HasVelocity() ? 1.0f : 0f);
 
         switch (_owner.Type)
         {
-            case AnimalType.Deer:   AnimateDeer(t, speed, fleeing);   break;
-            case AnimalType.Boar:   AnimateBoar(t, speed, fleeing);   break;
-            case AnimalType.Rabbit: AnimateRabbit(t, speed, fleeing); break;
-        }
-
-        // Face movement direction
-        if (_owner.Velocity.LengthSquared() > 0.01f)
-        {
-            var vel = _owner.Velocity; vel.Y = 0;
-            if (vel.LengthSquared() > 0.001f)
-            {
-                float targetYaw = Mathf.Atan2(vel.X, vel.Z);
-                float curYaw    = Rotation.Y;
-                Rotation = new Vector3(0, Mathf.LerpAngle(curYaw, targetYaw, 0.15f), 0);
-            }
+            case AnimalType.Deer:   AnimDeer(t, speed, flee);   break;
+            case AnimalType.Boar:   AnimBoar(t, speed, flee);   break;
+            case AnimalType.Rabbit: AnimRabbit(t, speed, flee); break;
         }
     }
 
-    private void AnimateDeer(float t, float speed, bool fleeing)
+    private void AnimDeer(float t, float speed, bool flee)
     {
-        // Leg swing
-        float swing = Mathf.Sin(t * speed * 4f) * 20f;
-        if (_legFL != null) _legFL.RotationDegrees = new Vector3( swing, 0, 0);
-        if (_legFR != null) _legFR.RotationDegrees = new Vector3(-swing, 0, 0);
-        if (_legBL != null) _legBL.RotationDegrees = new Vector3(-swing, 0, 0);
-        if (_legBR != null) _legBR.RotationDegrees = new Vector3( swing, 0, 0);
+        bool moving = speed > 0.1f;
+        float swing  = moving ? Mathf.Sin(t * speed * 3.5f) * 22f : 0f;
+        float bob    = moving ? Mathf.Abs(Mathf.Sin(t * speed * 3.5f)) * 0.03f : 0f;
 
-        // Body bob
-        float bob = Mathf.Sin(t * speed * 4f) * 0.02f;
-        if (_body != null) _body.Position = new Vector3(0, bob, 0);
+        SetLegAngle(_legFL,  swing); SetLegAngle(_legBR,  swing);
+        SetLegAngle(_legFR, -swing); SetLegAngle(_legBL, -swing);
 
-        // Head bob (grazing when idle)
-        if (!fleeing && _neck != null)
+        if (_body != null) _body.Position = new Vector3(0, 0.75f + bob, 0);
+
+        // Head: grazing idle, alert when moving/fleeing
+        if (_neck != null)
         {
-            float graze = Mathf.Sin(t * 0.5f) * 8f - 30f;
-            _neck.RotationDegrees = new Vector3(graze, 0, 0);
-        }
-        else if (_neck != null)
-        {
-            _neck.RotationDegrees = new Vector3(-10f, 0, 0); // head up when fleeing
+            float neckPitch = flee ? -20f : (moving ? -32f : -38f + Mathf.Sin(t*0.4f)*8f);
+            _neck.RotationDegrees = new Vector3(neckPitch, 0, 0);
         }
 
-        // Tail flick
         if (_tail != null)
-            _tail.RotationDegrees = new Vector3(0, Mathf.Sin(t * 2f) * 15f, 0);
+            _tail.RotationDegrees = new Vector3(0, Mathf.Sin(t*1.8f)*14f, 0);
     }
 
-    private void AnimateBoar(float t, float speed, bool fleeing)
+    private void AnimBoar(float t, float speed, bool flee)
     {
-        // Heavier stamp — less swing, more vertical
-        float swing = Mathf.Sin(t * speed * 5f) * 15f;
-        if (_legFL != null) _legFL.RotationDegrees = new Vector3( swing, 0, 0);
-        if (_legFR != null) _legFR.RotationDegrees = new Vector3(-swing, 0, 0);
-        if (_legBL != null) _legBL.RotationDegrees = new Vector3(-swing, 0, 0);
-        if (_legBR != null) _legBR.RotationDegrees = new Vector3( swing, 0, 0);
+        bool moving = speed > 0.1f;
+        float swing  = moving ? Mathf.Sin(t * speed * 4.0f) * 16f : 0f;
+        // Stamp: body dips with each step
+        float stamp  = moving ? Mathf.Abs(Mathf.Sin(t * speed * 4.0f)) * -0.025f : 0f;
 
-        // Stamping body drop
-        float stamp = Mathf.Abs(Mathf.Sin(t * speed * 5f)) * -0.03f;
-        if (_body != null) _body.Position = new Vector3(0, stamp + 0.05f, 0);
+        SetLegAngle(_legFL,  swing); SetLegAngle(_legBR,  swing);
+        SetLegAngle(_legFR, -swing); SetLegAngle(_legBL, -swing);
 
-        // Head low/aggressive when fleeing
+        if (_body != null) _body.Position = new Vector3(0, 0.52f + stamp, 0);
         if (_head != null)
-            _head.RotationDegrees = new Vector3(fleeing ? 15f : 0f, 0, 0);
-
-        // Tail wag
+        {
+            // Head low and aggressive when fleeing
+            _head.RotationDegrees = new Vector3(flee ? 12f : 0f, 0, 0);
+            // Sync head with body stamp
+            _head.Position = new Vector3(0, 0.52f + stamp, 0.40f);
+        }
         if (_tail != null)
-            _tail.RotationDegrees = new Vector3(Mathf.Sin(t * 3f) * 20f, 0, 0);
+            _tail.RotationDegrees = new Vector3(Mathf.Sin(t*2.5f)*18f, 0, 0);
     }
 
-    private void AnimateRabbit(float t, float speed, bool fleeing)
+    private void AnimRabbit(float t, float speed, bool flee)
     {
-        if (fleeing)
+        if (flee)
         {
-            // Hop: compress and extend body
-            float hop  = Mathf.Abs(Mathf.Sin(t * speed * 8f));
-            float sqsh = 1f - hop * 0.3f;
-            if (_body != null) _body.Scale = new Vector3(1f + hop * 0.1f, sqsh, 1f + hop * 0.2f);
-            if (_body != null) _body.Position = new Vector3(0, hop * 0.12f, 0);
+            // Hop — full body squash & stretch
+            float phase = t * 7.0f;
+            float hop   = Mathf.Max(0f, Mathf.Sin(phase));
+            float squat = 1f - hop * 0.25f;
+            if (_body != null)
+            {
+                _body.Scale    = new Vector3(1f + hop*0.10f, squat, 1f + hop*0.18f);
+                _body.Position = new Vector3(0, 0.26f + hop*0.14f, 0);
+            }
+            if (_head != null)
+                _head.Position = new Vector3(0, 0.42f + hop*0.10f, 0.08f);
 
             // All legs push back during hop
-            float legPush = Mathf.Sin(t * speed * 8f) * 25f;
-            if (_legFL != null) _legFL.RotationDegrees = new Vector3(-legPush, 0, 0);
-            if (_legFR != null) _legFR.RotationDegrees = new Vector3(-legPush, 0, 0);
-            if (_legBL != null) _legBL.RotationDegrees = new Vector3( legPush * 1.5f, 0, 0);
-            if (_legBR != null) _legBR.RotationDegrees = new Vector3( legPush * 1.5f, 0, 0);
+            float push = Mathf.Sin(phase) * 28f;
+            SetLegAngle(_legFL, -push * 0.6f);
+            SetLegAngle(_legFR, -push * 0.6f);
+            SetLegAngle(_legBL,  push * 1.2f);
+            SetLegAngle(_legBR,  push * 1.2f);
         }
         else
         {
-            // Idle: gentle breathing + ear twitch
-            if (_body != null) _body.Scale = Vector3.One;
-            float breath = Mathf.Sin(t * 1.5f) * 0.015f;
-            if (_body != null) _body.Position = new Vector3(0, 0.22f + breath, 0);
+            // Idle: reset scale, gentle breathing
+            if (_body != null)
+            {
+                _body.Scale    = Vector3.One;
+                float breath   = Mathf.Sin(t * 1.8f) * 0.008f;
+                _body.Position = new Vector3(0, 0.26f + breath, 0);
+            }
+            if (_head != null)
+                _head.Position = new Vector3(0, 0.42f, 0.08f);
 
-            // Ear twitch
-            if (_earL != null) _earL.RotationDegrees = new Vector3(0, 0, Mathf.Sin(t * 0.7f) * 12f);
-            if (_earR != null) _earR.RotationDegrees = new Vector3(0, 0, Mathf.Sin(t * 0.7f + 1f) * -12f);
+            SetLegAngle(_legFL, 0); SetLegAngle(_legFR, 0);
+            SetLegAngle(_legBL, 0); SetLegAngle(_legBR, 0);
 
-            // Nose twitch (head micro-rotation)
-            if (_head != null) _head.RotationDegrees = new Vector3(Mathf.Sin(t * 2.1f) * 4f, 0, 0);
+            // Ear twitch (independent left/right)
+            if (_earL != null) _earL.RotationDegrees = new Vector3(0, 0,  Mathf.Sin(t * 0.9f) * 10f);
+            if (_earR != null) _earR.RotationDegrees = new Vector3(0, 0, -Mathf.Sin(t * 0.7f + 0.8f) * 10f);
+            // Nose twitch
+            if (_head != null) _head.RotationDegrees = new Vector3(Mathf.Sin(t * 2.3f) * 3f, 0, 0);
         }
     }
 
-    // ═══════════════════════════════════════════════════════════════════
-    // MESH HELPERS
-    // ═══════════════════════════════════════════════════════════════════
-    private Node3D MakeLeg(Node3D parent, Vector3 pos, Color color, float length)
+    private void FaceVelocity()
     {
-        var pivot = MakeNode("Leg", pos);
-        parent.AddChild(pivot);
-        // Upper segment
-        AddMesh(pivot, MakeBox(0.07f, length * 0.55f, 0.07f), color,
-            new Vector3(0, -length * 0.27f, 0));
-        // Lower segment (shin) — offset from pivot
-        var shin = MakeNode("Shin", new Vector3(0, -length * 0.55f, 0));
+        if (!HasVelocity()) return;
+        var vel = _owner.Velocity; vel.Y = 0;
+        if (vel.LengthSquared() < 0.001f) return;
+        float targetYaw = Mathf.Atan2(vel.X, vel.Z);
+        Rotation = new Vector3(0, Mathf.LerpAngle(Rotation.Y, targetYaw, 0.12f), 0);
+    }
+
+    private bool HasVelocity() => _owner.Velocity.LengthSquared() > 0.01f;
+
+    // ═══════════════════════════════════════════════════════════════════
+    // LEG BUILDER
+    // pivot = top of leg (at body-bottom height), leg hangs downward
+    // ═══════════════════════════════════════════════════════════════════
+    private Node3D MakeLeg(Vector3 pivotPos, Color color, float totalLen)
+    {
+        float upper = totalLen * 0.52f;
+        float lower = totalLen * 0.52f;
+
+        var pivot = NewNode("Leg", pivotPos);
+        AddChild(pivot);
+
+        // Thigh
+        Mesh(pivot, Box(0.07f, upper, 0.07f), color, new Vector3(0, -upper * 0.5f, 0));
+
+        // Shin (below thigh)
+        var shin = NewNode("Shin", new Vector3(0, -upper, 0));
         pivot.AddChild(shin);
-        AddMesh(shin, MakeBox(0.05f, length * 0.50f, 0.05f), color,
-            new Vector3(0, -length * 0.25f, 0));
+        Mesh(shin, Box(0.055f, lower, 0.055f), color, new Vector3(0, -lower * 0.5f, 0));
+
+        // Hoof/paw
+        var hoof = _owner.Type == AnimalType.Rabbit ? new Color(0.3f,0.22f,0.14f) : new Color(0.18f,0.14f,0.10f);
+        Mesh(shin, Box(0.08f, 0.04f, 0.09f), hoof, new Vector3(0, -lower, 0));
+
         return pivot;
     }
 
-    private static Node3D MakeNode(string name, Vector3 pos)
+    private static void SetLegAngle(Node3D leg, float angleDeg)
     {
-        var n = new Node3D(); n.Name = name; n.Position = pos; return n;
+        if (leg != null) leg.RotationDegrees = new Vector3(angleDeg, 0, 0);
     }
 
-    private static void AddMesh(Node3D parent, Mesh mesh, Color color, Vector3 offset)
+    // ═══════════════════════════════════════════════════════════════════
+    // HELPERS
+    // ═══════════════════════════════════════════════════════════════════
+    private static Node3D NewNode(string name, Vector3 pos)
+    { var n = new Node3D(); n.Name = name; n.Position = pos; return n; }
+
+    private static void Mesh(Node3D parent, Mesh mesh, Color color, Vector3 offset = default)
     {
-        var mi = new MeshInstance3D();
+        var mi  = new MeshInstance3D();
         var mat = new StandardMaterial3D();
         mat.AlbedoColor = color;
         mesh.SurfaceSetMaterial(0, mat);
-        mi.Mesh = mesh;
+        mi.Mesh     = mesh;
         mi.Position = offset;
         parent.AddChild(mi);
     }
 
-    private static BoxMesh MakeBox(float x, float y, float z)
+    private static BoxMesh Box(float x, float y, float z)
     { var m = new BoxMesh(); m.Size = new Vector3(x, y, z); return m; }
 
-    private static SphereMesh MakeSphere(float r)
-    { var m = new SphereMesh(); m.Radius = r; m.Height = r * 2f; return m; }
+    private static SphereMesh Sphere(float r)
+    { var m = new SphereMesh(); m.Radius = r; m.Height = r * 2f;
+      m.RadialSegments = 8; m.Rings = 4; return m; }
 
-    private static CylinderMesh MakeCylinder(float r, float h)
+    private static CylinderMesh Cylinder(float r, float h)
     { var m = new CylinderMesh(); m.TopRadius = r; m.BottomRadius = r; m.Height = h; return m; }
 }

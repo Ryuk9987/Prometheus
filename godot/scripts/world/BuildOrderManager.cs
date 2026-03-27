@@ -33,8 +33,16 @@ public partial class BuildOrderManager : Node
         foreach (var o in _orders)
         {
             if (o.Status == BuildOrderStatus.Done) continue;
-            // NPC must know the knowledge (any depth)
-            if (!npc.Knowledge.Knows(o.KnowledgeId)) continue;
+            // NPC must know the knowledge (any depth), OR know the prerequisite for campfires
+            bool canBuild = npc.Knowledge.Knows(o.KnowledgeId);
+            if (!canBuild)
+            {
+                // Campfire/campfire_stone: any NPC who knows "fire" can build it
+                if ((o.KnowledgeId == "campfire" || o.KnowledgeId == "campfire_stone")
+                    && npc.Knowledge.Knows("fire"))
+                    canBuild = true;
+            }
+            if (!canBuild) continue;
             // Prefer orders from own tribe (or tribal-less orders)
             if (!string.IsNullOrEmpty(o.TribeId) && o.TribeId != npc.TribeId) continue;
             float d = from.DistanceTo(o.GlobalPosition);

@@ -85,6 +85,10 @@ public partial class AutonomousDiscovery : Node
         if (!Has("shelter") && Has("fire") && _hungerEvents > 20)
             Discover("shelter", 0.15f, 0.35f, "thought of building shelter");
 
+        // ── Campfire: knows fire well enough → learns to build a campfire deliberately
+        if (!Has("campfire") && Has("fire", 0.3f) && _fireExposure > 20)
+            Discover("campfire", 0.15f, 0.4f, "learned to build a campfire");
+
         // ── Cooking: near fire with food
         if (!Has("cooking") && Has("fire", 0.2f) && _fireExposure > 30
             && (_owner.Needs.IsHungry || Has("food_gathering")))

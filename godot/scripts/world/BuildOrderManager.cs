@@ -37,9 +37,14 @@ public partial class BuildOrderManager : Node
             bool canBuild = npc.Knowledge.Knows(o.KnowledgeId);
             if (!canBuild)
             {
-                // Campfire/campfire_stone: any NPC who knows "fire" can build it
+                // Campfire orders: any NPC who knows fire_making or fire can build it
                 if ((o.KnowledgeId == "campfire" || o.KnowledgeId == "campfire_stone")
-                    && npc.Knowledge.Knows("fire"))
+                    && (npc.Knowledge.Knows("fire_making") || npc.Knowledge.Knows("fire")))
+                    canBuild = true;
+                // Basic shelter: any NPC who knows shelter can build it
+                if ((o.KnowledgeId == "shelter" || o.KnowledgeId == "shelter_improved"
+                     || o.KnowledgeId == "shelter_mud")
+                    && npc.Knowledge.Knows("shelter"))
                     canBuild = true;
             }
             if (!canBuild) continue;

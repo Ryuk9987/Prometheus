@@ -69,7 +69,7 @@ public partial class LeaderBehavior : Node
 
         // ── Rule 1: Campfire — Zone 0 ─────────────────────────────────────
         bool hasFireNear = CampfireManager.Instance?.HasFireNear(center, 18f) ?? false;
-        if (!hasFireNear && Has(knowledge, "fire", 0.1f))
+        if (!hasFireNear && Has(knowledge, "fire_making", 0.1f))
         {
             string kid = Has(knowledge, "campfire_stone", 0.1f) ? "campfire_stone" : "campfire";
             if (CampfireManager.Instance?.TryClaimBuildSite(center, 18f) == true)
@@ -84,12 +84,17 @@ public partial class LeaderBehavior : Node
         int sheltersNeeded = Mathf.Min(members / 3, 5);
         int sheltersHave   = existingOf(BuildingType.Shelter) + existingOf(BuildingType.Hut)
                            + existingOf(BuildingType.WoodenHut)
-                           + pendingOf("shelter") + pendingOf("hut") + pendingOf("wooden_shelter");
+                           + pendingOf("shelter") + pendingOf("shelter_improved")
+                           + pendingOf("shelter_mud") + pendingOf("hut") + pendingOf("wooden_shelter");
         if (Has(knowledge, "shelter", 0.05f) && sheltersHave < sheltersNeeded)
         {
-            string kid = Has(knowledge, "hut", 0.2f) ? "hut" : "shelter";
-            var bt     = kid == "hut" ? BuildingType.Hut : BuildingType.Shelter;
-            var pos    = center + Ring(1, sheltersHave, 8f);
+            // Pick best shelter tier available
+            string kid = Has(knowledge, "hut", 0.3f)              ? "hut"
+                       : Has(knowledge, "shelter_mud", 0.2f)       ? "shelter_mud"
+                       : Has(knowledge, "shelter_improved", 0.15f) ? "shelter_improved"
+                       : "shelter";
+            var bt = kid == "hut" ? BuildingType.Hut : BuildingType.Shelter;
+            var pos = center + Ring(1, sheltersHave, 8f);
             PlaceOrder(tribe, kid, pos, 5f);
             GD.Print($"[Leader] {_owner.NpcName} orders {kid} ({sheltersHave+1}/{sheltersNeeded}).");
             return;

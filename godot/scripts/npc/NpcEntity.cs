@@ -1,5 +1,6 @@
 #nullable disable
 using Godot;
+using System.Collections.Generic;
 
 public partial class NpcEntity : Node3D
 {
@@ -8,7 +9,10 @@ public partial class NpcEntity : Node3D
     [Export] public string TribeId     { get; set; } = "tribe_a";
     [Export] public float  BeliefScore { get; set; } = 0.0f;
 
-    // Set before adding to tree — applied in _Ready()
+    // Set before adding to tree — list of (id, depth, confidence) applied in _Ready()
+    public List<(string id, float depth, float conf)> StarterKnowledge { get; set; } = new();
+
+    // Legacy single-entry support (kept for compatibility)
     public string StarterKnowledgeId         { get; set; } = "";
     public float  StarterKnowledgeDepth      { get; set; } = 0.0f;
     public float  StarterKnowledgeConfidence { get; set; } = 0.0f;
@@ -67,7 +71,11 @@ public partial class NpcEntity : Node3D
         Personality.Randomize(_rng);
         Belief.Belief = BeliefScore;
 
-        // Apply starter knowledge if set by spawner
+        // Apply starter knowledge list (new system)
+        foreach (var (id, depth, conf) in StarterKnowledge)
+            Knowledge.Learn(id, depth, conf, "innate");
+
+        // Legacy single-entry support
         if (StarterKnowledgeId != "")
             Knowledge.Learn(StarterKnowledgeId, StarterKnowledgeDepth, StarterKnowledgeConfidence, "oracle");
 

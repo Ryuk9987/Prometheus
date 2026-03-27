@@ -12,9 +12,6 @@ public enum KnowledgeCategory
     Concept,    // language, writing, astronomy — meta-knowledge
 }
 
-/// <summary>
-/// A fully defined knowledge entry — what it is, what it unlocks, what it costs.
-/// </summary>
 public class KnowledgeDefinition
 {
     public string           Id           { get; }
@@ -22,10 +19,10 @@ public class KnowledgeDefinition
     public string           Description  { get; }
     public KnowledgeCategory Category    { get; }
     public string           Icon         { get; }
-    public float            MinDepth     { get; }  // minimum depth to use/build
-    public List<MaterialCost> Materials  { get; }  // what's needed to build/craft
-    public List<string>     Unlocks      { get; }  // other knowledge ids this enables
-    public List<string>     Requires     { get; }  // prerequisite knowledge
+    public float            MinDepth     { get; }
+    public List<MaterialCost> Materials  { get; }
+    public List<string>     Unlocks      { get; }
+    public List<string>     Requires     { get; }
 
     public KnowledgeDefinition(string id, string name, string desc,
         KnowledgeCategory cat, string icon, float minDepth,
@@ -48,209 +45,406 @@ public class MaterialCost
     public MaterialCost(ResourceType r, float a) { Resource = r; Amount = a; }
 }
 
-/// <summary>
-/// Master catalog of all knowledge in the game.
-/// NPCs discover entries through oracle, experience, or teaching.
-/// </summary>
 public static class KnowledgeCatalog
 {
     public static readonly Dictionary<string, KnowledgeDefinition> All = new();
 
     static KnowledgeCatalog()
     {
-        // ── Nature ────────────────────────────────────────────────────────
-        Add("fire",     "Feuer",       "Wärme und Licht aus Holz.",
-            KnowledgeCategory.Nature, "🔥", 0.1f,
-            materials: new(){ new(ResourceType.Wood, 3f) });
+        // ════════════════════════════════════════════════════════════════
+        // NATURE — raw knowledge about the world
+        // ════════════════════════════════════════════════════════════════
+        Add("stone",    "Stein",       "Harter Stein — Grundwerkzeug und Baumaterial.",
+            KnowledgeCategory.Nature, "🪨", 0.1f);
 
-        // ── Buildings (fire-derived) ───────────────────────────────────────
-        Add("campfire", "Lagerfeuer",  "Äste aufgestapelt und entzündet.",
-            KnowledgeCategory.Building, "🔥", 0.15f,
-            materials: new(){ new(ResourceType.Wood, 3f) },
-            requires: new(){ "fire" });
+        Add("wood",     "Holz",        "Äste und Stämme — vielseitig verwendbar.",
+            KnowledgeCategory.Nature, "🪵", 0.1f);
 
-        Add("campfire_stone", "Lagerfeuer mit Steinkranz",
-            "Äste + Steine als Feuerschutz.",
-            KnowledgeCategory.Building, "🔥🪨", 0.15f,
-            materials: new(){ new(ResourceType.Wood, 3f), new(ResourceType.Stone, 3f) },
-            requires: new(){ "fire" });
+        Add("water",    "Wasser",      "Lebensnotwendige Flüssigkeit — Quellen und Bäche.",
+            KnowledgeCategory.Nature, "💧", 0.1f);
 
-        Add("water",    "Wasser",      "Lebensnotwendige Flüssigkeit.",
-            KnowledgeCategory.Nature, "💧", 0.05f);
+        Add("clay",     "Ton",         "Formbarer Ton aus feuchter Erde.",
+            KnowledgeCategory.Nature, "🟤", 0.15f);
 
-        Add("medicine", "Heilkunde",   "Blätter und Beeren heilen Wunden.",
-            KnowledgeCategory.Nature, "🌿", 0.3f,
-            requires: new(){ "fire" });
+        Add("plants",   "Pflanzen",    "Gräser, Moos, Blätter — Material für vieles.",
+            KnowledgeCategory.Nature, "🌿", 0.1f);
 
-        // ── Tools ─────────────────────────────────────────────────────────
-        Add("tools",    "Stein-Werkzeug","Stein auf Stein ergibt scharfe Kanten.",
-            KnowledgeCategory.Tool, "🪨", 0.2f,
-            materials: new(){ new(ResourceType.Stone, 2f) });
+        // ════════════════════════════════════════════════════════════════
+        // FIRE — aufgeteilt in: Feuer machen vs. Lagerfeuer bauen
+        // ════════════════════════════════════════════════════════════════
 
-        Add("hunting",  "Speer",       "Ein Ast mit Steinspitze — tödlich auf Distanz.",
-            KnowledgeCategory.Tool, "🏹", 0.25f,
-            materials: new(){ new(ResourceType.Wood, 1f), new(ResourceType.Stone, 1f) },
-            requires: new(){ "tools" });
-
-        Add("bow",      "Bogen & Pfeil","Biegbarer Ast + Sehne + Pfeil.",
-            KnowledgeCategory.Tool, "🎯", 0.3f,
-            materials: new(){ new(ResourceType.Wood, 2f) },
-            requires: new(){ "hunting" },
-            unlocks: new(){ "hunting" });
-
-        Add("rope",     "Seil",        "Gedrehte Fasern halten vieles zusammen.",
-            KnowledgeCategory.Tool, "🪢", 0.2f,
+        // Tier 1: Feuer machen — Grundtechnik (Feuerbohrer per Hand)
+        Add("fire_making", "Feuer machen",
+            "Zwei Stöcke schnell reiben bis eine Glut entsteht. Mühsam aber möglich.",
+            KnowledgeCategory.Skill, "🔥", 0.1f,
             materials: new(){ new(ResourceType.Wood, 1f) });
 
-        Add("axe",      "Axt",         "Schwerer Stein, gebunden an Holzgriff.",
+        // Tier 2: Feuer — Wissen über Feuer selbst (Eigenschaften, Pflege)
+        Add("fire",     "Feuer",
+            "Wärme und Licht. Hält Raubtiere fern. Ohne Pflege erlischt es.",
+            KnowledgeCategory.Nature, "🔥", 0.1f);
+
+        // Tier 3: Feuertechniken (Upgrades von fire_making)
+        Add("fire_drill", "Feuerbohrer (Bogen)",
+            "Bogen dreht den Bohrstock schneller — Feuer in der Hälfte der Zeit.",
+            KnowledgeCategory.Tool, "🏹", 0.25f,
+            materials: new(){ new(ResourceType.Wood, 1f) },
+            requires: new(){ "fire_making", "rope_making" },
+            unlocks: new(){ "fire_making" });
+
+        Add("fire_striker", "Feuerstein",
+            "Feuerstein auf Pyrit schlagen — Funken ins Zunder-Nest.",
+            KnowledgeCategory.Tool, "✨", 0.3f,
+            requires: new(){ "fire_making", "stone" },
+            unlocks: new(){ "fire_making" });
+
+        // ════════════════════════════════════════════════════════════════
+        // CAMPFIRE — Lagerfeuer (Upgrade-Kette)
+        // ════════════════════════════════════════════════════════════════
+
+        // Tier 1: Einfaches Lagerfeuer (nur Äste, kein Schutz)
+        Add("campfire", "Lagerfeuer",
+            "Äste aufgeschichtet und entzündet. Wärmt, leuchtet, hält Tiere fern. " +
+            "Kein Windschutz — erlischt schnell.",
+            KnowledgeCategory.Building, "🔥", 0.1f,
+            materials: new(){ new(ResourceType.Wood, 3f) },
+            requires: new(){ "fire_making" },
+            unlocks: new(){ "cooking", "campfire_stone" });
+
+        // Tier 2: Steinkranz — besser, windgeschützt
+        Add("campfire_stone", "Lagerfeuer mit Steinkranz",
+            "Steine halten Windschutz und Hitze besser. Kocht Nahrung gleichmäßiger.",
+            KnowledgeCategory.Building, "🔥🪨", 0.15f,
+            materials: new(){ new(ResourceType.Wood, 3f), new(ResourceType.Stone, 4f) },
+            requires: new(){ "campfire", "stone" },
+            unlocks: new(){ "campfire_pot_hook" });
+
+        // Tier 3: Aufhängevorrichtung (Topf über Feuer)
+        Add("campfire_pot_hook", "Lagerfeuer mit Topfaufhängung",
+            "Querbalken über dem Feuer hält einen Topf — gleichmäßiges Kochen.",
+            KnowledgeCategory.Building, "🍲", 0.25f,
+            materials: new(){ new(ResourceType.Wood, 4f), new(ResourceType.Stone, 4f) },
+            requires: new(){ "campfire_stone", "pottery", "rope_making" },
+            unlocks: new(){ "cooking_advanced" });
+
+        // ════════════════════════════════════════════════════════════════
+        // COOKING
+        // ════════════════════════════════════════════════════════════════
+        Add("cooking", "Einfaches Kochen",
+            "Fleisch und Wurzeln über dem Feuer garen — besser verdaulich.",
+            KnowledgeCategory.Skill, "🍖", 0.2f,
+            requires: new(){ "fire", "campfire" });
+
+        Add("cooking_advanced", "Topfkochen",
+            "Im Topf kochen — Suppen, Eintöpfe, länger haltbar.",
+            KnowledgeCategory.Skill, "🍲", 0.35f,
+            requires: new(){ "cooking", "pottery", "campfire_pot_hook" });
+
+        // ════════════════════════════════════════════════════════════════
+        // SHELTER — Unterkunft (Upgrade-Kette)
+        // ════════════════════════════════════════════════════════════════
+
+        // Tier 1: Äste-Unterkunft (Lean-to) — kein Komfort, minimal
+        Add("shelter", "Ast-Unterkunft",
+            "Schräg gestellte Äste gegen den Wind — kein Bett, kein Boden. " +
+            "Hält Regen ab. Dach aus Blättern oder Moos.",
+            KnowledgeCategory.Building, "🏚", 0.1f,
+            materials: new(){ new(ResourceType.Wood, 5f), new(ResourceType.Branch, 3f) },
+            unlocks: new(){ "shelter_improved" });
+
+        // Tier 2: Verbesserte Ast-Hütte (Gerüst mit Blättern/Fell)
+        Add("shelter_improved", "Einfache Hütte",
+            "Rundes Gerüst aus Stangen, bedeckt mit Blättern und Fell. " +
+            "Etwas Wärme, etwas Sicherheit. Kein Boden.",
+            KnowledgeCategory.Building, "🏠", 0.2f,
+            materials: new(){ new(ResourceType.Wood, 8f), new(ResourceType.Branch, 5f) },
+            requires: new(){ "shelter" },
+            unlocks: new(){ "shelter_mud", "hut" });
+
+        // Tier 3a: Lehmbewurf (Dämmung)
+        Add("shelter_mud", "Lehmhütte",
+            "Wände mit Lehm verputzt — isoliert besser, hält Wind und Kälte ab.",
+            KnowledgeCategory.Building, "🏠", 0.3f,
+            materials: new(){ new(ResourceType.Wood, 8f), new(ResourceType.Branch, 5f),
+                              new(ResourceType.Stone, 2f) },
+            requires: new(){ "shelter_improved", "clay" },
+            unlocks: new(){ "hut" });
+
+        // Tier 3b: Echte Hütte (braucht Holzverarbeitung)
+        Add("hut", "Hütte",
+            "Stabiler Unterstand mit Holzbalken und Steinfundament.",
+            KnowledgeCategory.Building, "🏠", 0.4f,
+            materials: new(){ new(ResourceType.LogHardwood, 4f), new(ResourceType.Stone, 4f) },
+            requires: new(){ "shelter_improved", "lumber" },
+            unlocks: new(){ "writing", "storehouse", "wooden_shelter" });
+
+        Add("wooden_shelter", "Holzhütte",
+            "Stabile Behausung aus Holzbalken und Brettern.",
+            KnowledgeCategory.Building, "🪵", 0.45f,
+            materials: new(){ new(ResourceType.LogHardwood, 6f), new(ResourceType.Wood, 4f) },
+            requires: new(){ "hut", "lumber" });
+
+        // ════════════════════════════════════════════════════════════════
+        // LANGUAGE — Stammessprache
+        // ════════════════════════════════════════════════════════════════
+        Add("language", "Stammessprache",
+            "Gemeinsame Laute und Gesten. Koordination bei Jagd und Bau. " +
+            "Geschichten am Lagerfeuer — Wissen wird weitergegeben.",
+            KnowledgeCategory.Concept, "💬", 0.1f,
+            unlocks: new(){ "group_hunt", "teaching", "writing" });
+
+        Add("teaching", "Wissen weitergeben",
+            "Aktives Unterweisen statt zufälliges Beobachten. Wissen überträgt sich tiefer.",
+            KnowledgeCategory.Concept, "📖", 0.3f,
+            requires: new(){ "language" });
+
+        // ════════════════════════════════════════════════════════════════
+        // SURVIVAL BASICS — Grundkenntnisse zum Überleben
+        // ════════════════════════════════════════════════════════════════
+
+        // Sammeln
+        Add("foraging", "Sammeln",
+            "Essbare Beeren, Früchte, Pilze und Wurzeln erkennen und sammeln. " +
+            "Giftige Pflanzen meiden — wird durch Erfahrung gelernt.",
+            KnowledgeCategory.Skill, "🫐", 0.1f,
+            unlocks: new(){ "food_storage" });
+
+        Add("food_gathering", "Vorratshaltung (einfach)",
+            "Gesammelte Nahrung an einem sicheren Ort lagern.",
+            KnowledgeCategory.Skill, "🧺", 0.2f,
+            requires: new(){ "foraging" });
+
+        // Jagd
+        Add("hunting", "Jagd",
+            "Tierspuren lesen, Fallen stellen, anschleichen. Anfangs nur Kleinwild.",
+            KnowledgeCategory.Skill, "🏹", 0.15f,
+            unlocks: new(){ "group_hunt", "hide_working", "spear" });
+
+        Add("group_hunt", "Gemeinschaftsjagd",
+            "Koordiniertes Jagen in der Gruppe — größere Tiere werden möglich.",
+            KnowledgeCategory.Skill, "🦌", 0.35f,
+            requires: new(){ "hunting", "language" });
+
+        // Seile aus Pflanzenfasern
+        Add("rope_making", "Seilherstellung",
+            "Gras, Baumrinde und Pflanzenfasern zu einfachen Seilen drehen. " +
+            "Grundlage für Werkzeuge und Bau.",
+            KnowledgeCategory.Skill, "🪢", 0.15f,
+            materials: new(){ new(ResourceType.Branch, 2f) },
+            unlocks: new(){ "axe", "bow", "fire_drill" });
+
+        // Fell-Bearbeitung (ohne Nadel/Schere)
+        Add("hide_working", "Fellbearbeitung",
+            "Fell mit einem Stein schaben und glätten. Kein Schnitt, kein Nähen — " +
+            "nur grobe Umhänge. Für richtige Kleidung braucht man Nadeln.",
+            KnowledgeCategory.Skill, "🧣", 0.15f,
+            materials: new(){ new(ResourceType.Stone, 1f) },
+            requires: new(){ "hunting" },
+            unlocks: new(){ "clothing_basic" });
+
+        // Einfache Fellkleidung
+        Add("clothing_basic", "Einfache Fellkleidung",
+            "Grobe Umhänge aus Fell — schützt gegen Kälte. Kein Schnitt, kein Nähen. " +
+            "Für bessere Kleidung braucht man Knochennadeln.",
+            KnowledgeCategory.Skill, "🧥", 0.2f,
+            requires: new(){ "hide_working" },
+            unlocks: new(){ "clothing_sewn" });
+
+        // Knochennadel → genähte Kleidung
+        Add("bone_needle", "Knochennadel",
+            "Aus Tierknochen geschliffen — ermöglicht Nähen.",
+            KnowledgeCategory.Tool, "🦴", 0.3f,
+            materials: new(){ new(ResourceType.Stone, 1f) },
+            requires: new(){ "hunting", "sharp_stone" },
+            unlocks: new(){ "clothing_sewn" });
+
+        Add("clothing_sewn", "Genähte Kleidung",
+            "Mit Knochennadel und Sehne genähtes Fell — passt besser, wärmt mehr.",
+            KnowledgeCategory.Skill, "🧥", 0.35f,
+            requires: new(){ "clothing_basic", "bone_needle", "rope_making" });
+
+        // ════════════════════════════════════════════════════════════════
+        // TOOLS
+        // ════════════════════════════════════════════════════════════════
+        Add("sharp_stone", "Scharfer Stein",
+            "Einen Stein gezielt absplittern für scharfe Kanten.",
+            KnowledgeCategory.Tool, "🪨", 0.15f,
+            requires: new(){ "stone" });
+
+        Add("tools", "Steinwerkzeug",
+            "Systematisches Herstellen von Werkzeug aus Stein.",
+            KnowledgeCategory.Tool, "🪨", 0.2f,
+            materials: new(){ new(ResourceType.Stone, 2f) },
+            requires: new(){ "sharp_stone" });
+
+        Add("spear", "Speer",
+            "Stein an Holz gebunden — Nahkampf und Jagd.",
+            KnowledgeCategory.Tool, "🏹", 0.25f,
+            materials: new(){ new(ResourceType.Stone, 1f), new(ResourceType.Wood, 2f) },
+            requires: new(){ "tools", "rope_making" });
+
+        Add("bow", "Bogen & Pfeil",
+            "Biegbarer Ast + Sehne + Pfeil — Jagd auf Distanz.",
+            KnowledgeCategory.Tool, "🎯", 0.35f,
+            materials: new(){ new(ResourceType.Wood, 2f) },
+            requires: new(){ "spear", "rope_making" });
+
+        Add("axe", "Steinaxt",
+            "Schwerer Stein, gebunden an Holzgriff — fällt Bäume.",
             KnowledgeCategory.Tool, "🪓", 0.35f,
             materials: new(){ new(ResourceType.Stone, 2f), new(ResourceType.Wood, 1f) },
-            requires: new(){ "tools", "rope" });
+            requires: new(){ "tools", "rope_making" });
 
-        Add("shovel",   "Schaufel",    "Flacher Stein am Stock — gräbt die Erde.",
-            KnowledgeCategory.Tool, "⛏", 0.35f,
+        Add("shovel", "Grabstock / Steinschaufel",
+            "Flacher Stein am Stock — gräbt die Erde.",
+            KnowledgeCategory.Tool, "⛏", 0.3f,
             materials: new(){ new(ResourceType.Stone, 2f), new(ResourceType.Wood, 1f) },
-            requires: new(){ "tools" },
-            unlocks: new(){ "agriculture" });
+            requires: new(){ "tools" });
 
-        Add("pot",      "Tonkrug",     "Geformter Lehm, gebrannt im Feuer.",
+        Add("pot", "Tonkrug",
+            "Geformter Lehm, gebrannt im Feuer.",
             KnowledgeCategory.Tool, "🏺", 0.4f,
             materials: new(){ new(ResourceType.Stone, 1f) },
-            requires: new(){ "fire" },
-            unlocks: new(){ "medicine" });
+            requires: new(){ "fire", "clay" },
+            unlocks: new(){ "food_storage", "cooking_advanced" });
 
-        // ── Buildings ─────────────────────────────────────────────────────
-        Add("shelter",  "Unterkunft",  "Äste und Fell — schützt vor Regen.",
-            KnowledgeCategory.Building, "🏚", 0.2f,
-            materials: new(){ new(ResourceType.Wood, 5f) });
+        // ════════════════════════════════════════════════════════════════
+        // CRAFTING & PROCESSING
+        // ════════════════════════════════════════════════════════════════
+        Add("lumber", "Holzverarbeitung",
+            "Baumstämme zu Balken und Brettern bearbeiten.",
+            KnowledgeCategory.Skill, "🪚", 0.3f,
+            requires: new(){ "axe" },
+            unlocks: new(){ "hut", "wooden_shelter" });
 
-        Add("hut",      "Hütte",       "Stabiler Unterstand mit Steinfundament.",
-            KnowledgeCategory.Building, "🏠", 0.4f,
-            materials: new(){ new(ResourceType.Wood, 8f), new(ResourceType.Stone, 4f) },
-            requires: new(){ "shelter", "tools" },
-            unlocks: new(){ "writing" });
+        Add("pottery", "Töpferei",
+            "Ton formen und im Feuer härten.",
+            KnowledgeCategory.Skill, "🏺", 0.3f,
+            requires: new(){ "clay", "fire" },
+            unlocks: new(){ "pot", "campfire_pot_hook" });
 
-        Add("wall",     "Mauer",       "Steinmauer schützt die Gemeinschaft.",
+        Add("preservation", "Konservierung",
+            "Nahrung durch Trocknen, Räuchern und Salzen haltbar machen.",
+            KnowledgeCategory.Skill, "🧂", 0.3f,
+            requires: new(){ "cooking", "food_gathering" });
+
+        Add("charcoal", "Holzkohle",
+            "Holz zu Kohle brennen — intensivere, gleichmäßigere Hitze.",
+            KnowledgeCategory.Tool, "⬛", 0.3f,
+            requires: new(){ "fire", "lumber" });
+
+        // ════════════════════════════════════════════════════════════════
+        // MEDICINE
+        // ════════════════════════════════════════════════════════════════
+        Add("medicine", "Heilkunde",
+            "Bestimmte Blätter und Beeren lindern Schmerzen und Wunden.",
+            KnowledgeCategory.Skill, "🌿", 0.2f,
+            requires: new(){ "foraging" });
+
+        Add("herbal_medicine", "Kräutermedizin",
+            "Heilkräuter über Feuer zubereiten — wirksamer als rohe Anwendung.",
+            KnowledgeCategory.Skill, "🌿", 0.35f,
+            requires: new(){ "medicine", "cooking" });
+
+        Add("medicine_advanced", "Fortgeschrittene Medizin",
+            "Systematische Heilkunde mit Werkzeug und Wissen.",
+            KnowledgeCategory.Concept, "💊", 0.55f,
+            requires: new(){ "herbal_medicine", "pottery" });
+
+        // ════════════════════════════════════════════════════════════════
+        // BUILDINGS (further)
+        // ════════════════════════════════════════════════════════════════
+        Add("wall", "Mauer",
+            "Steinmauer schützt die Gemeinschaft.",
             KnowledgeCategory.Building, "🧱", 0.45f,
             materials: new(){ new(ResourceType.Stone, 10f) },
             requires: new(){ "tools" });
 
-        Add("storehouse","Vorratslager","Schutz vor Verderb — Essen hält länger.",
+        Add("storehouse", "Vorratslager",
+            "Schutz vor Verderb — Essen und Materialien haltbar aufbewahrt.",
             KnowledgeCategory.Building, "🏛", 0.4f,
             materials: new(){ new(ResourceType.Wood, 6f), new(ResourceType.Stone, 2f) },
-            requires: new(){ "hut" },
-            unlocks: new(){ "agriculture" });
+            requires: new(){ "hut", "food_gathering" });
 
-        // ── Skills ────────────────────────────────────────────────────────
-        Add("agriculture","Ackerbau",  "Samen in Erde — Nahrung wächst von selbst.",
+        Add("well", "Brunnen",
+            "Gegraben bis zum Grundwasser — stetiger Wasservorrat.",
+            KnowledgeCategory.Building, "💧", 0.4f,
+            materials: new(){ new(ResourceType.Stone, 6f) },
+            requires: new(){ "shovel", "pottery" });
+
+        // ════════════════════════════════════════════════════════════════
+        // AGRICULTURE
+        // ════════════════════════════════════════════════════════════════
+        Add("agriculture", "Ackerbau",
+            "Samen in Erde — Nahrung wächst von selbst.",
             KnowledgeCategory.Skill, "🌾", 0.3f,
-            materials: new(){ },
-            requires: new(){ "shovel" });
+            requires: new(){ "shovel", "foraging" });
 
-        // ── Concepts ──────────────────────────────────────────────────────
-        Add("language", "Sprache",     "Gemeinsame Laute tragen Bedeutung.",
-            KnowledgeCategory.Concept, "💬", 0.2f,
-            unlocks: new(){ "writing" });
+        Add("farming", "Feldwirtschaft",
+            "Systematischer Ackerbau mit Werkzeug und Bewässerung.",
+            KnowledgeCategory.Skill, "🌾", 0.4f,
+            requires: new(){ "agriculture", "shovel" });
 
-        Add("writing",  "Schrift",     "Zeichen auf Stein — Wissen überlebt den Tod.",
+        Add("irrigation", "Bewässerung",
+            "Wasser zu Feldern leiten.",
+            KnowledgeCategory.Skill, "💦", 0.4f,
+            requires: new(){ "farming", "shovel" });
+
+        // ════════════════════════════════════════════════════════════════
+        // CONCEPTS & SOCIETY
+        // ════════════════════════════════════════════════════════════════
+        Add("writing", "Schrift",
+            "Zeichen auf Stein — Wissen überlebt den Tod.",
             KnowledgeCategory.Concept, "📜", 0.5f,
             materials: new(){ new(ResourceType.Stone, 1f) },
             requires: new(){ "language" },
             unlocks: new(){ "astronomy" });
 
-        Add("astronomy","Astronomie",  "Die Sterne zeigen Zeit und Richtung.",
+        Add("astronomy", "Astronomie",
+            "Die Sterne zeigen Zeit und Richtung.",
             KnowledgeCategory.Concept, "⭐", 0.5f,
             requires: new(){ "writing" });
 
-        Add("metalwork","Metallarbeit","Feuer verwandelt Stein in etwas Härteres.",
-            KnowledgeCategory.Concept, "⚒", 0.6f,
-            requires: new(){ "fire", "tools" },
-            materials: new(){ new(ResourceType.Stone, 3f) });
+        Add("food_storage", "Vorratshaltung",
+            "Nahrung in Töpfen für Wintermonate aufbewahren.",
+            KnowledgeCategory.Concept, "🏛", 0.4f,
+            requires: new(){ "food_gathering", "pottery" });
 
-        // ── Recipe results (from KnowledgeRecipes) ─────────────────────────
-        Add("fire_control", "Feuerkontrolle", "Feuer beherrschen statt nur nutzen.",
-            KnowledgeCategory.Skill, "🔥", 0.2f);
+        Add("healer", "Heilerrolle",
+            "Spezialisierte Person für Heilkunde im Stamm.",
+            KnowledgeCategory.Concept, "🩺", 0.4f,
+            requires: new(){ "herbal_medicine" });
 
-        Add("cooking",      "Kochen",         "Nahrung über Feuer erhitzen und zubereiten.",
-            KnowledgeCategory.Skill, "🍖", 0.25f);
-
-        Add("sharp_stone",  "Scharfer Stein", "Einen Stein zuspitzen für bessere Nutzung.",
-            KnowledgeCategory.Tool, "🪨", 0.15f);
-
-        Add("fire_starter", "Feuerstein",     "Feuer mit Steinen schlagen statt reiben.",
-            KnowledgeCategory.Tool, "✨", 0.25f);
-
-        Add("preservation", "Konservierung",  "Nahrung durch Trocknen und Hitze haltbar machen.",
-            KnowledgeCategory.Skill, "🧂", 0.3f);
-
-        Add("spear",        "Speer",          "Stein an Holz gebunden — Wurfwaffe.",
-            KnowledgeCategory.Tool, "🏹", 0.3f,
-            materials: new(){ new(ResourceType.Stone, 1f), new(ResourceType.Wood, 2f) });
-
-        Add("group_hunt",   "Gemeinschaftsjagd","Koordiniertes Jagen in der Gruppe.",
-            KnowledgeCategory.Skill, "🦌", 0.35f);
-
-        Add("pottery",      "Töpferei",        "Ton formen und im Feuer härten.",
-            KnowledgeCategory.Skill, "🏺", 0.3f);
-
-        Add("wooden_shelter","Holzhütte",      "Stabile Behausung aus Holzbalken.",
-            KnowledgeCategory.Building, "🪵", 0.35f,
-            materials: new(){ new(ResourceType.LogHardwood, 4f), new(ResourceType.Wood, 6f) });
-
-        Add("lumber",       "Holzverarbeitung","Baumstämme zu Balken bearbeiten.",
-            KnowledgeCategory.Skill, "🪚", 0.3f);
-
-        Add("charcoal",     "Holzkohle",       "Holz zu Kohle brennen für intensivere Hitze.",
-            KnowledgeCategory.Tool, "⬛", 0.3f);
-
-        Add("irrigation",   "Bewässerung",     "Wasser zu Feldern leiten.",
-            KnowledgeCategory.Skill, "💦", 0.35f);
-
-        Add("farming",      "Feldwirtschaft",  "Systematischer Ackerbau mit Werkzeug.",
-            KnowledgeCategory.Skill, "🌾", 0.4f);
-
-        Add("herbal_medicine","Kräutermedizin","Heilkräuter über Feuer zubereiten.",
-            KnowledgeCategory.Skill, "🌿", 0.35f);
-
-        Add("healer",       "Heiler",          "Spezialisierte Person für Heilkunde.",
-            KnowledgeCategory.Concept, "🩺", 0.4f);
-
-        Add("food_storage", "Vorratshaltung",  "Nahrung in Töpfen für Wintermonate aufbewahren.",
-            KnowledgeCategory.Concept, "🏛", 0.4f);
-
-        Add("village",      "Dorf",            "Feste Siedlung mit Häusern und Vorräten.",
+        Add("village", "Dorf",
+            "Feste Siedlung mit Häusern und Vorräten.",
             KnowledgeCategory.Building, "🏘", 0.5f);
 
-        Add("specialization","Arbeitsteilung", "Jeder macht was er am besten kann.",
+        Add("specialization", "Arbeitsteilung",
+            "Jeder macht was er am besten kann.",
             KnowledgeCategory.Concept, "⚙", 0.45f);
 
-        Add("metalworking", "Metallverarbeitung","Erze erhitzen und formen.",
-            KnowledgeCategory.Concept, "⚒", 0.5f,
-            materials: new(){ new(ResourceType.Stone, 3f), new(ResourceType.Resin, 1f) });
-
-        Add("surplus",      "Überschuss",      "Mehr erzeugen als man braucht.",
-            KnowledgeCategory.Concept, "📦", 0.45f);
-
-        Add("medicine_advanced","Fortgeschrittene Medizin","Systematische Heilkunde.",
-            KnowledgeCategory.Concept, "💊", 0.55f);
-
-        Add("hunting",      "Jagd",            "Systematisches Jagen von Tieren.",
-            KnowledgeCategory.Skill, "🏹", 0.2f);
-
-        Add("knowledge",    "Wissen",          "Das Konzept des Lernens selbst.",
+        Add("knowledge", "Wissensbegriff",
+            "Das Konzept des Lernens selbst — Wissen kann weitergegeben werden.",
             KnowledgeCategory.Concept, "📖", 0.3f);
 
-        Add("stone",        "Stein",           "Harter Stein — Grundwerkzeug.",
-            KnowledgeCategory.Nature, "🪨", 0.1f);
+        Add("surplus", "Überschuss",
+            "Mehr erzeugen als man braucht — Basis für Handel.",
+            KnowledgeCategory.Concept, "📦", 0.45f);
 
-        Add("wood",         "Holz",            "Holz von Bäumen.",
-            KnowledgeCategory.Nature, "🪵", 0.1f);
+        // ════════════════════════════════════════════════════════════════
+        // METALLURGY (späte Ära)
+        // ════════════════════════════════════════════════════════════════
+        Add("metalwork", "Metallarbeit",
+            "Feuer verwandelt Erz in etwas Härteres.",
+            KnowledgeCategory.Concept, "⚒", 0.6f,
+            requires: new(){ "fire", "tools", "charcoal" },
+            materials: new(){ new(ResourceType.Stone, 3f) });
 
-        Add("clay",         "Ton",             "Formbarer Ton aus feuchter Erde.",
-            KnowledgeCategory.Nature, "🟤", 0.15f);
-
-        Add("water",        "Wasser",          "Lebensnotwendiges Wasser.",
-            KnowledgeCategory.Nature, "💧", 0.1f);
+        Add("metalworking", "Metallverarbeitung",
+            "Erze erhitzen und zu Werkzeug formen.",
+            KnowledgeCategory.Concept, "⚒", 0.65f,
+            materials: new(){ new(ResourceType.Stone, 3f), new(ResourceType.Resin, 1f) },
+            requires: new(){ "metalwork" });
     }
 
     private static void Add(string id, string name, string desc,
@@ -259,8 +453,13 @@ public static class KnowledgeCatalog
         List<string> requires = null,
         List<string> unlocks = null)
     {
+        if (All.ContainsKey(id))
+        {
+            GD.PrintErr($"[KnowledgeCatalog] Duplicate id: {id}");
+            return;
+        }
         All[id] = new KnowledgeDefinition(id, name, desc, cat, icon, minDepth,
-            materials, unlocks, requires);
+                                           materials, unlocks, requires);
     }
 
     public static KnowledgeDefinition Get(string id)
@@ -268,17 +467,4 @@ public static class KnowledgeCatalog
 
     public static List<KnowledgeDefinition> GetByCategory(KnowledgeCategory cat)
         => All.Values.Where(d => d.Category == cat).ToList();
-
-    /// <summary>Returns all knowledge that a given NPC has reached minimum depth for.</summary>
-    public static List<KnowledgeDefinition> GetUnlocked(NpcEntity npc)
-    {
-        var result = new List<KnowledgeDefinition>();
-        foreach (var def in All.Values)
-        {
-            if (!npc.Knowledge.Knows(def.Id)) continue;
-            if (npc.Knowledge.Knowledge[def.Id].Depth < def.MinDepth) continue;
-            result.Add(def);
-        }
-        return result;
-    }
 }

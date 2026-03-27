@@ -12,15 +12,18 @@ public partial class Animal : Node3D
     [Export] public AnimalType Type       { get; set; } = AnimalType.Deer;
     [Export] public float      Health     { get; set; } = 3f;
     [Export] public float      FleeRadius { get; set; } = 8f;
-    [Export] public float      MoveSpeed  { get; set; } = 4f;
+    [Export] public float      MoveSpeed  { get; set; } = 1.4f;
     [Export] public float      FoodValue  { get; set; } = 5f;
 
     private RandomNumberGenerator _rng = new();
     private Vector3 _wanderTarget;
     private double  _wanderTimer = 0;
     private bool    _fleeing     = false;
+    private Vector3 _velocity    = Vector3.Zero;
 
-    public bool IsDead => Health <= 0f;
+    public bool    IsDead    => Health <= 0f;
+    public bool    IsFleeing => _fleeing;
+    public Vector3 Velocity  => _velocity;
 
     private WorldObjectEntry _registryEntry;
 
@@ -32,6 +35,11 @@ public partial class Animal : Node3D
         string icon = Type switch { AnimalType.Deer => "🦌", AnimalType.Boar => "🐗", _ => "🐇" };
         _registryEntry = new WorldObjectEntry(this, WorldObjectKind.Animal, Type.ToString(), icon);
         WorldObjectRegistry.Instance?.Register(_registryEntry);
+
+        // Add visuals
+        var visuals = new AnimalVisuals();
+        visuals.Name = "AnimalVisuals";
+        AddChild(visuals);
     }
 
     public override void _Process(double delta)
@@ -59,7 +67,8 @@ public partial class Animal : Node3D
         {
             fleeDir = fleeDir.Normalized();
             fleeDir.Y = 0;
-            GlobalPosition += fleeDir * MoveSpeed * 1.5f * (float)delta;
+            _velocity = fleeDir * MoveSpeed * 1.5f;
+            GlobalPosition += _velocity * (float)delta;
             return;
         }
 
@@ -67,7 +76,14 @@ public partial class Animal : Node3D
         var dir = _wanderTarget - GlobalPosition;
         dir.Y = 0;
         if (dir.Length() > 0.5f)
-            GlobalPosition += dir.Normalized() * MoveSpeed * (float)delta;
+        {
+            _velocity = dir.Normalized() * MoveSpeed;
+            GlobalPosition += _velocity * (float)delta;
+        }
+        else
+        {
+            _velocity = Vector3.Zero;
+        }
 
         _wanderTimer += delta;
         if (_wanderTimer > _rng.RandfRange(3f, 7f))

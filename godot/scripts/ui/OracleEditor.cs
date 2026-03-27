@@ -102,9 +102,10 @@ public partial class OracleEditor : CanvasLayer
 				float  depth = kv.Value;
 				var def = KnowledgeCatalog.Get(id);
 				bool sel = _selected.Contains(id);
+				int npcCount = CountFollowersWithKnowledge(id);
 
 				var btn = new Button();
-				btn.Text = $"{def?.Icon ?? "•"} {def?.DisplayName ?? id}   {DepthBar(depth)} {depth:F2}";
+				btn.Text = $"{def?.Icon ?? "•"} {def?.DisplayName ?? id}  ({npcCount} NPCs)   {DepthBar(depth)} {depth:F2}";
 				btn.AddThemeFontSizeOverride("font_size", 12);
 				btn.TooltipText = def?.Description ?? id;
 				btn.Flat = !sel;
@@ -204,10 +205,27 @@ public partial class OracleEditor : CanvasLayer
 		vbox.AddChild(MakeLabel(recipe.Hint, 11, new Color(0.7f,0.7f,0.6f), wrap: true));
 		vbox.AddChild(MakeLabel($"\" {recipe.NpcThought} \"", 10, new Color(0.5f,0.55f,0.8f), wrap: true));
 
+		// NPC eligibility info
+		int eligible   = CountEligibleForReveal(recipe);
+		int wouldLearn = CountWouldLearn(recipe);
+		var eligColor  = eligible > 0 ? new Color(0.5f,1f,0.6f) : new Color(0.8f,0.4f,0.3f);
+		vbox.AddChild(MakeLabel(
+			$"👥 {eligible} NPC(s) haben Vorkenntnisse — {wouldLearn} würden es lernen",
+			11, eligColor));
+
+		// Prerequisites display
+		var preReqSb = new System.Text.StringBuilder("Vorkenntnisse: ");
+		var reqDefs = recipe.Ingredients.Select(ing => KnowledgeCatalog.Get(ing)?.DisplayName ?? ing);
+		preReqSb.Append(string.Join(", ", reqDefs));
+		vbox.AddChild(MakeLabel(preReqSb.ToString(), 10, new Color(0.55f,0.55f,0.65f), wrap: true));
+
 		if (ready)
 		{
 			var btn = new Button();
-			btn.Text = "✨ Dem Orakel offenbaren";
+			btn.Text = eligible > 0
+				? $"✨ Offenbaren ({wouldLearn} NPCs lernen)"
+				: "✨ Offenbaren (keine NPCs haben Vorkenntnisse)";
+			btn.Disabled = eligible == 0;
 			btn.AddThemeFontSizeOverride("font_size", 13);
 			var cap = recipe;
 			btn.Pressed += () => Reveal(cap);
@@ -319,6 +337,24 @@ public partial class OracleEditor : CanvasLayer
 		}
 		return pool;
 	}
+
+	/// <summary>Returns how many follower NPCs know a given knowledge id (any depth).</summary>
+	private int CountFollowersWithKnowledge(string id)
+		=> (GameManager.Instance?.AllNpcs ?? new())
+			.Count(n => n.Belief.CanHearOracle && n.Knowledge.Knows(id));
+
+	/// <summary>Returns how many follower NPCs have ALL prerequisites for a recipe result.</summary>
+	private int CountEligibleForReveal(KnowledgeRecipes.Recipe recipe)
+		=> (GameManager.Instance?.AllNpcs ?? new())
+			.Count(n => n.Belief.CanHearOracle
+				&& recipe.Ingredients.All(ing => n.Knowledge.Knows(ing)));
+
+	/// <summary>Returns how many follower NPCs would actually learn a result (eligible + don't know it yet).</summary>
+	private int CountWouldLearn(KnowledgeRecipes.Recipe recipe)
+		=> (GameManager.Instance?.AllNpcs ?? new())
+			.Count(n => n.Belief.CanHearOracle
+				&& recipe.Ingredients.All(ing => n.Knowledge.Knows(ing))
+				&& !n.Knowledge.Knows(recipe.Result));
 
 	private static string DepthBar(float d)
 	{

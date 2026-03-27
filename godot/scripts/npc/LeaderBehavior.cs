@@ -89,12 +89,25 @@ public partial class LeaderBehavior : Node
                            + pendingOf("shelter_mud") + pendingOf("hut") + pendingOf("wooden_shelter");
         if (Has(knowledge, "shelter", 0.05f) && sheltersHave < sheltersNeeded)
         {
-            // Pick best shelter tier available
-            string kid = Has(knowledge, "hut", 0.3f)              ? "hut"
-                       : Has(knowledge, "shelter_mud", 0.2f)       ? "shelter_mud"
-                       : Has(knowledge, "shelter_improved", 0.15f) ? "shelter_improved"
-                       : "shelter";
-            var bt = kid == "hut" ? BuildingType.Hut : BuildingType.Shelter;
+            // Build shelters bottom-up: start with simplest tier, upgrade only when tribe has
+            // enough basic shelter AND the better knowledge is well established (depth >= 0.35)
+            int basicShelters = existingOf(BuildingType.Shelter) + pendingOf("shelter");
+
+            string kid;
+            if (basicShelters < sheltersNeeded && Has(knowledge, "shelter", 0.05f))
+            {
+                // Always build basic shelter first
+                kid = "shelter";
+            }
+            else if (Has(knowledge, "hut", 0.35f) && Has(knowledge, "lumber", 0.25f))
+                kid = "hut";
+            else if (Has(knowledge, "shelter_mud", 0.35f) && Has(knowledge, "clay", 0.15f))
+                kid = "shelter_mud";
+            else if (Has(knowledge, "shelter_improved", 0.35f))
+                kid = "shelter_improved";
+            else
+                kid = "shelter";
+
             var pos = center + Ring(1, sheltersHave, 8f);
             PlaceOrder(tribe, kid, pos, 5f);
             GD.Print($"[Leader] {_owner.NpcName} orders {kid} ({sheltersHave+1}/{sheltersNeeded}).");

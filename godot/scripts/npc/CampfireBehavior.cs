@@ -96,9 +96,12 @@ public partial class CampfireBehavior : Node
             return;
         }
 
-        // Build new fire if none nearby
+        // Build new fire if none nearby — also check CompletedBuilding campfires
         var anyFire = CampfireManager.Instance?.FindNearest(_owner.GlobalPosition, 20f);
-        if (anyFire == null)
+        bool nearbyCompletedFire = SettlementManager.Instance?.Buildings
+            .Any(b => b.Type == BuildingType.Campfire
+                   && b.GlobalPosition.DistanceTo(_owner.GlobalPosition) < 20f) ?? false;
+        if (anyFire == null && !nearbyCompletedFire)
         {
             _state = BState.SeekWood;
             _hasSite = false;

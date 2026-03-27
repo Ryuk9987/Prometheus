@@ -68,20 +68,9 @@ public partial class SettlementManager : Node
 
         int Count(BuildingType t) => existing.TryGetValue(t, out int n) ? n : 0;
 
-        // ── Rule 1: Campfire — only if NO real fire exists within 15m of tribe center
-        bool hasNearbyFire = CampfireManager.Instance?.Campfires
-            .Any(c => c.GlobalPosition.DistanceTo(center) < 15f) ?? false;
-        bool hasPendingFire = BuildOrderManager.Instance?.Orders
-            .Any(o => (o.KnowledgeId == "campfire" || o.KnowledgeId == "campfire_stone")
-                      && o.GlobalPosition.DistanceTo(center) < 15f) ?? false;
-        hasNearbyFire = hasNearbyFire || Count(BuildingType.Campfire) > 0 || hasPendingFire;
-        // Only place campfire BuildOrder if tribe has at least 1 Builder
-        bool hasBuilder = tribe.Members.Any(n => n.SocialRole == SocialRole.Builder);
-        if (Has(knowledge, "fire", 0.1f) && !hasNearbyFire && hasBuilder)
-        {
-            PlaceAutonomous(tribe, "campfire", BuildingType.Campfire, center, offset: Vector3.Zero);
-            return;
-        }
+        // ── Rule 1: Campfire — handled exclusively by CampfireBehavior on NPCs.
+        // SettlementManager does NOT place campfires to avoid duplicate campfire objects.
+        // (CampfireBehavior creates proper Campfire nodes with fuel/burn mechanics.)
 
         // Also count pending BuildOrders as "already being built"
         int pendingOf(string kid) => BuildOrderManager.Instance?.Orders
@@ -223,6 +212,17 @@ public partial class SettlementManager : Node
     // ── Spawn completed building when BuildOrder finishes ─────────────────
     public void OnBuildOrderCompleted(BuildOrder order)
     {
+        // Campfires are handled by CampfireBehavior — spawning a CompletedBuilding
+        // here would create a duplicate "phantom" campfire without fuel/burn mechanics.
+        if (order.KnowledgeId == "campfire" || order.KnowledgeId == "campfire_stone")
+        {
+            var fire = new Campfire();
+            fire.WithStoneRing = order.KnowledgeId == "campfire_stone";
+            fire.Position = order.GlobalPosition;
+            GetParent().CallDeferred(Node.MethodName.AddChild, fire);
+            return;
+        }
+
         var bt = KnowledgeIdToBuildingType(order.KnowledgeId);
         if (bt == null) return;
 

@@ -24,6 +24,7 @@ public partial class CampfireBehavior : Node
     private Vector3    _buildSite;
     private Campfire   _targetFire = null;
     private bool       _hasSite    = false;
+    private bool       _siteClamed = false; // true if we registered a pending site
 
     private const double IdleCheckInterval = 6.0;
     private const float  WorkRange         = 1.8f;
@@ -97,24 +98,28 @@ public partial class CampfireBehavior : Node
             return;
         }
 
-        // Build new fire if none nearby — also check CompletedBuilding campfires
-        var anyFire = CampfireManager.Instance?.FindNearest(_owner.GlobalPosition, 20f);
-        bool nearbyCompletedFire = SettlementManager.Instance?.Buildings
-            .Any(b => b.Type == BuildingType.Campfire
-                   && b.GlobalPosition.DistanceTo(_owner.GlobalPosition) < 20f) ?? false;
-        if (anyFire == null && !nearbyCompletedFire)
+        // Build new fire only if no real or pending fire is nearby (within 20m of NPC)
+        // TryClaimBuildSite atomically checks + reserves the spot to prevent race conditions
+        var estimatedSite = _owner.GlobalPosition; // rough estimate before wood is collected
+        if (CampfireManager.Instance?.HasFireNear(estimatedSite, 20f) == false)
         {
-            _state = BState.SeekWood;
-            _hasSite = false;
-            string style = _withStoneRing ? "mit Steinkranz" : "nur Asthaufen";
-            GD.Print($"[Campfire] {_owner.NpcName}: baut Lagerfeuer ({style}).");
+            // Try to claim — if another NPC already claimed a site nearby, abort
+            if (CampfireManager.Instance?.TryClaimBuildSite(estimatedSite, 20f) == true)
+            {
+                _buildSite = estimatedSite;
+                _siteClamed = true;
+                _hasSite = false; // will be refined once wood is collected
+                _state = BState.SeekWood;
+                string style = _withStoneRing ? "mit Steinkranz" : "nur Asthaufen";
+                GD.Print($"[Campfire] {_owner.NpcName}: baut Lagerfeuer ({style}).");
+            }
         }
     }
 
     private bool TickSeekWood(double delta)
     {
         var wood = ResourceManager.Instance?.FindNearest(_owner.GlobalPosition, ResourceType.Wood);
-        if (wood == null) { _state = BState.Idle; return false; }
+        if (wood == null) { Abort(); return false; }
 
         if (MoveTo(_owner.GlobalPosition, wood.GlobalPosition, delta, WorkRange))
         {
@@ -123,11 +128,29 @@ public partial class CampfireBehavior : Node
             GD.Print($"[Campfire] {_owner.NpcName} picked up wood ({_carriedWood:F1}/{WoodNeeded})");
             if (_carriedWood >= WoodNeeded)
             {
-                // Choose or create build site
-                if (!_hasSite)
+                // Refine build site if we're building (not tending)
+                if (!_hasSite && _targetFire == null)
                 {
-                    _buildSite = _owner.GlobalPosition + new Vector3(
+                    var refined = _owner.GlobalPosition + new Vector3(
                         (float)GD.RandRange(-3.0, 3.0), 0, (float)GD.RandRange(-3.0, 3.0));
+
+                    // Update claimed site to refined position
+                    if (_siteClamed)
+                    {
+                        CampfireManager.Instance?.ReleaseSite(_buildSite);
+                        // Only proceed if refined spot is still free
+                        if (CampfireManager.Instance?.TryClaimBuildSite(refined, 20f) == true)
+                        {
+                            _buildSite = refined;
+                        }
+                        else
+                        {
+                            // Spot taken in the meantime — abort
+                            _siteClamed = false;
+                            Abort();
+                            return false;
+                        }
+                    }
                     _hasSite = true;
                 }
                 _state = BState.CarryWood;
@@ -154,6 +177,12 @@ public partial class CampfireBehavior : Node
             fire.Position = _buildSite;
             _owner.GetParent().AddChild(fire);
             _targetFire = fire;
+            // Release claimed site — real Campfire is now registered in CampfireManager
+            if (_siteClamed)
+            {
+                CampfireManager.Instance?.ReleaseSite(_buildSite);
+                _siteClamed = false;
+            }
         }
 
         _targetFire.AddFuel(_carriedWood);
@@ -186,6 +215,19 @@ public partial class CampfireBehavior : Node
         _carriedWood = 0;
         _state = BState.Idle;
         return false;
+    }
+
+    private void Abort()
+    {
+        if (_siteClamed)
+        {
+            CampfireManager.Instance?.ReleaseSite(_buildSite);
+            _siteClamed = false;
+        }
+        _state = BState.Idle;
+        _hasSite = false;
+        _carriedWood = 0f;
+        _targetFire = null;
     }
 
     private bool MoveTo(Vector3 from, Vector3 to, double delta, float range)

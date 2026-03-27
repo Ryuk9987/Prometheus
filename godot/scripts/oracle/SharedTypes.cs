@@ -16,11 +16,19 @@ public enum ResourceType
     // Tree products (raw)
     LogHardwood, LogSoftwood, Bark, Branch, Leaf, Resin,
     // Processed
-    Plank, Charcoal, Fiber,
+    Plank, Charcoal, Fiber, Clay,
     // Gathered
     BerryEdible, BerryPoison, MushroomEdible, MushroomPoison,
     // Animal
     Meat, Bone, Pelt, Fat,
+    // Crafted tools (held in inventory)
+    ToolSharpStone,  // scharfer Stein — Basis-Werkzeug
+    ToolAxe,         // Steinaxt — Bäume fällen, Holz bearbeiten
+    ToolSpear,       // Speer — Jagd
+    ToolBow,         // Bogen — Jagd auf Distanz
+    ToolRope,        // Seil — Binden, Bauen
+    ToolBoneNeedle,  // Knochennadel — Kleidung nähen
+    ToolFireDrill,   // Feuerbohrer — Feuer machen
 }
 
 public class DrawnStroke

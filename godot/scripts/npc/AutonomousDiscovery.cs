@@ -100,9 +100,9 @@ public partial class AutonomousDiscovery : Node
             Discover("tools", 0.15f, 0.40f, "kombinierte Stein und Ast zu Werkzeug");
 
         // ── SEILE (rope_making) ────────────────────────────────────────
-        // NPCs kennen Basis-Seile aus Starterwissen, vertiefen durch Nutzung
-        if (!Has("rope_making", 0.3f) && Has("rope_making") && _buildEvents > 10)
-            Discover("rope_making", 0.10f, 0.30f, "verfeinerte Seiltechnik durch Übung");
+        // Vertieft sich durch Bau-Erfahrung — direkt auf 0.35 um Loop zu vermeiden
+        if (!Has("rope_making", 0.35f) && Has("rope_making") && _buildEvents > 15)
+            Discover("rope_making", 0.35f, 0.50f, "verfeinerte Seiltechnik durch Übung");
 
         // ── AXTHERSTELLUNG (axe) ──────────────────────────────────────
         if (!Has("axe") && Has("tools", 0.3f) && Has("rope_making", 0.2f) && _buildEvents > 20)

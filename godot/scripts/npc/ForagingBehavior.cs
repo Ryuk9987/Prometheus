@@ -123,18 +123,34 @@ public partial class ForagingBehavior : Node
 
         if (_target.IsTree)
         {
-            bool canFell = _owner.Knowledge.Knows("tools") ||
-                           _owner.Knowledge.Knows("axe");
+            // Has axe in inventory → best yields, deepens axe knowledge
+            bool hasAxe   = inv != null && inv.Has(ResourceType.ToolAxe, 1f);
+            // Has sharp stone → can fell but less efficient
+            bool hasSharp = inv != null && inv.Has(ResourceType.ToolSharpStone, 1f);
+            // Has knowledge of tools (even without physical tool) → can attempt
+            bool canFell  = hasAxe || hasSharp
+                         || _owner.Knowledge.Knows("tools")
+                         || _owner.Knowledge.Knows("axe");
+
             if (!canFell)
             {
-                // Can only grab fallen branches
                 if (inv != null) inv.Add(ResourceType.Branch, 0.5f);
                 GD.Print($"[Forage] {_owner.NpcName} picks up branches (no tools).");
                 return;
             }
+
             yields = _target.Fell();
-            _owner.Knowledge.Verify("tools", 0.05f);
-            GD.Print($"[Forage] {_owner.NpcName} fells {_target.ObjType}!");
+
+            if (hasAxe)
+            {
+                _owner.Knowledge.Verify("axe", 0.05f);
+                GD.Print($"[Forage] {_owner.NpcName} fells {_target.ObjType} (Axt)!");
+            }
+            else
+            {
+                _owner.Knowledge.Verify("tools", 0.05f);
+                GD.Print($"[Forage] {_owner.NpcName} fells {_target.ObjType}!");
+            }
         }
         else
         {

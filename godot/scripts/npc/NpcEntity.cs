@@ -29,6 +29,7 @@ public partial class NpcEntity : Node3D
     public CampfireBehavior      CampfireBuilder   { get; private set; }
     public BuildWorkerBehavior   BuildWorker        { get; private set; }
     public LeaderBehavior        LeaderPlanning     { get; private set; }
+    public CraftingBehavior      Crafting           { get; private set; }
     public ForagingBehavior      Foraging           { get; private set; }
     public NpcInventory          Inventory          { get; private set; }
     public WellbeingComponent    Wellbeing          { get; private set; }
@@ -60,6 +61,7 @@ public partial class NpcEntity : Node3D
         CampfireBuilder = GetNode<CampfireBehavior>("CampfireBehavior");
         BuildWorker     = GetNode<BuildWorkerBehavior>("BuildWorkerBehavior");
         LeaderPlanning  = GetNode<LeaderBehavior>("LeaderBehavior");
+        Crafting        = GetNode<CraftingBehavior>("CraftingBehavior");
         Foraging        = GetNode<ForagingBehavior>("ForagingBehavior");
         Inventory       = GetNode<NpcInventory>("NpcInventory");
         Wellbeing       = GetNode<WellbeingComponent>("WellbeingComponent");
@@ -99,7 +101,10 @@ public partial class NpcEntity : Node3D
         // Priority 2: Oracle Tablet (believers seek knowledge)
         if (TabletSeek.Tick(delta)) return;
 
-        // Priority 3: Tend campfires (any NPC that knows fire)
+        // Priority 3: Crafting (any NPC that has knowledge + materials)
+        if (Crafting.Tick(delta)) return;
+
+        // Priority 4: Tend campfires (any NPC that knows fire)
         if (CampfireBuilder.Tick(delta)) return;
 
         // Priority 4–7: Role-based behavior

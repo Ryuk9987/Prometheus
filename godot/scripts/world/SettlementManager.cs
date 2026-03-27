@@ -212,10 +212,11 @@ public partial class SettlementManager : Node
     // ── Spawn completed building when BuildOrder finishes ─────────────────
     public void OnBuildOrderCompleted(BuildOrder order)
     {
-        // Campfires are handled by CampfireBehavior — spawning a CompletedBuilding
-        // here would create a duplicate "phantom" campfire without fuel/burn mechanics.
+        // Campfires spawn a real Campfire node (with fuel/burn mechanics), not a CompletedBuilding.
+        // Also release the pending site claim so CampfireManager knows the spot is taken.
         if (order.KnowledgeId == "campfire" || order.KnowledgeId == "campfire_stone")
         {
+            CampfireManager.Instance?.ReleaseSite(order.GlobalPosition);
             var fire = new Campfire();
             fire.WithStoneRing = order.KnowledgeId == "campfire_stone";
             fire.Position = order.GlobalPosition;

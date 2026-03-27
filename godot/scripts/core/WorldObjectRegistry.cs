@@ -35,7 +35,7 @@ public partial class WorldObjectRegistry : Node
     public void Unregister(WorldObjectEntry e) => _objects.Remove(e);
 
     /// <summary>Find nearest world object to a screen position.</summary>
-    public WorldObjectEntry FindNearest(Vector2 screenPos, Camera3D camera, float pixelThreshold = 45f)
+    public WorldObjectEntry FindNearest(Vector2 screenPos, Camera3D camera, float pixelThreshold = 55f)
     {
         WorldObjectEntry best = null;
         float bestDist = pixelThreshold;
@@ -43,12 +43,31 @@ public partial class WorldObjectRegistry : Node
         foreach (var entry in _objects)
         {
             if (!IsInstanceValid(entry.Node)) continue;
-            if (!camera.IsPositionInFrustum(entry.Node.GlobalPosition)) continue;
 
-            var screenObj = camera.UnprojectPosition(entry.Node.GlobalPosition);
+            // Use visual center rather than node origin (which is at ground level)
+            var worldPos = entry.Node.GlobalPosition;
+            worldPos.Y += VisualCenterOffset(entry);
+
+            if (!camera.IsPositionInFrustum(worldPos)) continue;
+
+            var screenObj = camera.UnprojectPosition(worldPos);
             float dist = screenPos.DistanceTo(screenObj);
             if (dist < bestDist) { bestDist = dist; best = entry; }
         }
         return best;
     }
+
+    /// <summary>Y offset to the visual center of an object (so clicks land on the body, not the ground).</summary>
+    private static float VisualCenterOffset(WorldObjectEntry entry) => entry.Kind switch {
+        WorldObjectKind.Animal    => entry.Node is Animal a ? a.Type switch {
+            AnimalType.Deer   => 0.75f,
+            AnimalType.Boar   => 0.52f,
+            AnimalType.Rabbit => 0.32f,
+            _ => 0.5f
+        } : 0.5f,
+        WorldObjectKind.Campfire  => 0.4f,
+        WorldObjectKind.Structure => 1.0f,
+        WorldObjectKind.NPC       => 1.0f,
+        _ => 0.3f
+    };
 }

@@ -175,11 +175,11 @@ public partial class WorldInspector : CanvasLayer
                 AddRow($"  {m.Resource}", $"{m.Amount:F0} benötigt");
         }
 
-        // Workers
+        // Workers — count NPCs heading to or working on this order
         int workers = GameManager.Instance?.AllNpcs
             .Count(n => n.BuildWorker.IsActive &&
-                        n.GlobalPosition.DistanceTo(b.GlobalPosition) < 5f) ?? 0;
-        AddRow("Bauarbeiter", workers > 0 ? $"{workers} aktiv" : "Keiner");
+                        n.GlobalPosition.DistanceTo(b.GlobalPosition) < 60f) ?? 0;
+        AddRow("Bauarbeiter", workers > 0 ? $"{workers} unterwegs/aktiv" : "Keiner");
 
         if (b.Status == BuildOrderStatus.Pending)
         {

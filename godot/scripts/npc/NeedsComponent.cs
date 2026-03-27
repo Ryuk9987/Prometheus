@@ -5,12 +5,15 @@ public partial class NeedsComponent : Node
 {
     [Export] public float Hunger           { get; set; } = 0.0f;
     [Export] public float Thirst           { get; set; } = 0.0f;
-    [Export] public float HungerDecayRate  { get; set; } = 0.04f; // per world tick
-    [Export] public float ThirstDecayRate  { get; set; } = 0.06f; // thirst rises faster
+    // Decay per second. Day is now 10 min/hour → 4h real per day.
+    // Target: NPC gets hungry ~every 2 real hours (= half a game day)
+    // 0.04/s was tuned for 1min/hour — now 10x slower day needs ~10x slower decay
+    [Export] public float HungerDecayRate  { get; set; } = 0.004f; // per second
+    [Export] public float ThirstDecayRate  { get; set; } = 0.006f; // thirst rises faster
 
-    public bool IsHungry   => Hunger >= 0.6f;
+    public bool IsHungry   => Hunger >= 0.75f; // raised threshold — NPCs work longer before panicking
     public bool IsStarving => Hunger >= 0.95f;
-    public bool IsThirsty  => Thirst >= 0.6f;
+    public bool IsThirsty  => Thirst >= 0.75f;
 
     /// <summary>Most urgent need right now.</summary>
     public ResourceType? UrgentNeed

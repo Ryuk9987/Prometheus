@@ -18,6 +18,7 @@
 [ext_resource type="Script" path="res://scripts/npc/NpcVisuals.cs" id="16"]
 [ext_resource type="Script" path="res://scripts/npc/LeaderBehavior.cs" id="17"]
 [ext_resource type="Script" path="res://scripts/npc/CraftingBehavior.cs" id="18"]
+[ext_resource type="Script" path="res://scripts/npc/DailyRoutineBehavior.cs" id="19"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_1"]
 radius = 0.28
@@ -91,6 +92,9 @@ script = ExtResource("17")
 
 [node name="CraftingBehavior" type="Node" parent="."]
 script = ExtResource("18")
+
+[node name="DailyRoutineBehavior" type="Node" parent="."]
+script = ExtResource("19")
 
 [node name="NpcVisuals" type="Node3D" parent="."]
 script = ExtResource("16")

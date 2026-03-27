@@ -30,6 +30,7 @@ public partial class NpcEntity : Node3D
     public BuildWorkerBehavior   BuildWorker        { get; private set; }
     public LeaderBehavior        LeaderPlanning     { get; private set; }
     public CraftingBehavior      Crafting           { get; private set; }
+    public DailyRoutineBehavior  DailyRoutine       { get; private set; }
     public ForagingBehavior      Foraging           { get; private set; }
     public NpcInventory          Inventory          { get; private set; }
     public WellbeingComponent    Wellbeing          { get; private set; }
@@ -42,7 +43,7 @@ public partial class NpcEntity : Node3D
     private double  _wanderTimer   = 0;
     private const double WanderInterval = 3.5;
     private const float  WanderRadius   = 15f;
-    private const float  MoveSpeed      = 2.5f;
+    private const float  MoveSpeed      = 0.8f;
 
     // Tribe coordination
     public Vector3 TribeCenterHint    { get; set; }
@@ -62,6 +63,7 @@ public partial class NpcEntity : Node3D
         BuildWorker     = GetNode<BuildWorkerBehavior>("BuildWorkerBehavior");
         LeaderPlanning  = GetNode<LeaderBehavior>("LeaderBehavior");
         Crafting        = GetNode<CraftingBehavior>("CraftingBehavior");
+        DailyRoutine    = GetNode<DailyRoutineBehavior>("DailyRoutineBehavior");
         Foraging        = GetNode<ForagingBehavior>("ForagingBehavior");
         Inventory       = GetNode<NpcInventory>("NpcInventory");
         Wellbeing       = GetNode<WellbeingComponent>("WellbeingComponent");
@@ -95,16 +97,19 @@ public partial class NpcEntity : Node3D
 
     public override void _Process(double delta)
     {
-        // Priority 1: Survival (hunger/thirst critical — always)
+        // Priority 1: Survival (hunger/thirst critical — always overrides schedule)
         if (Survival.Tick(delta)) return;
 
-        // Priority 2: Oracle Tablet (believers seek knowledge)
+        // Priority 2: Daily routine (sleep/rest blocks all work)
+        if (DailyRoutine.Tick(delta)) return;
+
+        // Priority 3: Oracle Tablet (believers seek knowledge)
         if (TabletSeek.Tick(delta)) return;
 
-        // Priority 3: Crafting (any NPC that has knowledge + materials)
+        // Priority 4: Crafting (any NPC that has knowledge + materials)
         if (Crafting.Tick(delta)) return;
 
-        // Priority 4: Tend campfires (any NPC that knows fire)
+        // Priority 5: Tend campfires (any NPC that knows fire)
         if (CampfireBuilder.Tick(delta)) return;
 
         // Priority 4–7: Role-based behavior

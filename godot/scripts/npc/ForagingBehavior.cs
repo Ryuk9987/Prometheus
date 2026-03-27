@@ -19,7 +19,7 @@ public partial class ForagingBehavior : Node
     private double       _checkTimer = 0;
     private const double CheckInterval = 5.0;
     private const float  WorkRange    = 1.8f;
-    private const float  MoveSpeed    = 2.8f;
+    private const float  MoveSpeed    = 0.9f;
 
     // Poison experience tracking
     private readonly HashSet<NatureObjectType> _knownPoisonous = new();

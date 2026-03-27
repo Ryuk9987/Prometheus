@@ -10,7 +10,7 @@ public partial class BuildWorkerBehavior : Node
     private NpcEntity  _owner;
     private BuildOrder _target;
     private const float WorkRange   = 2.5f;
-    private const float MoveSpeed   = 2.8f;
+    private const float MoveSpeed   = 0.9f;
     private double      _checkTimer = 0;
     private const double CheckInterval = 8.0;
 

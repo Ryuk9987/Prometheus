@@ -11,7 +11,7 @@ public partial class CooperationComponent : Node
     private NpcEntity     _owner;
     private CommunityTask _currentTask;
     private const float   WorkRange   = 3.5f;
-    private const float   MoveSpeed   = 3.5f;
+    private const float   MoveSpeed   = 1.1f;
 
     public bool HasTask => _currentTask != null && !_currentTask.IsFinished;
 

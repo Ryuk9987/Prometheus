@@ -11,7 +11,7 @@ public partial class DayCycle : Node
 {
     public static DayCycle Instance { get; private set; }
 
-    [Export] public float MinutesPerHour   { get; set; } = 1f;   // 1 real min = 1 game hour
+    [Export] public float MinutesPerHour   { get; set; } = 10f;  // 10 real min = 1 game hour → 1 day = 4h real
     [Export] public float StartHour        { get; set; } = 6f;   // start at dawn
 
     public float   Hour        { get; private set; }
@@ -35,7 +35,7 @@ public partial class DayCycle : Node
         _lastHour = Hour;
         _sun = GetTree().Root.FindChild("Sun", true, false) as DirectionalLight3D;
         _env = GetTree().Root.FindChild("WorldEnvironment", true, false) as WorldEnvironment;
-        GD.Print("[DayCycle] Started. 1 real minute = 1 game hour.");
+        GD.Print($"[DayCycle] Started. {MinutesPerHour} real minutes = 1 game hour (1 day = {MinutesPerHour * 24 / 60f:F1}h real time).");
     }
 
     public override void _Process(double delta)

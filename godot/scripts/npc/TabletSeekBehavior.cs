@@ -14,7 +14,7 @@ public partial class TabletSeekBehavior : Node
     private bool      _seeking      = false;
     private const double CheckInterval  = 5.0;
     private const double SeekCooldown   = 20.0; // don't revisit too often
-    private const float  MoveSpeed      = 2.8f;
+    private const float  MoveSpeed      = 0.9f;
     private const float  ReadRange      = 5.5f;
 
     public override void _Ready()

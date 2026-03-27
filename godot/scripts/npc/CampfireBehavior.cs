@@ -17,7 +17,7 @@ public partial class CampfireBehavior : Node
 
     private const double IdleCheckInterval = 10.0;
     private const float  WorkRange         = 1.8f;
-    private const float  MoveSpeed         = 2.8f;
+    private const float  MoveSpeed         = 0.9f;
     private const float  WoodNeeded        = 3f;
 
     public bool IsActive => _state != BState.Idle;

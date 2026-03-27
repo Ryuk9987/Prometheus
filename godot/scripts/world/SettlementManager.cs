@@ -48,8 +48,10 @@ public partial class SettlementManager : Node
 
     // ── Helpers ───────────────────────────────────────────────────────────
     public static BuildingType? KnowledgeIdToBuildingType(string id) => id switch {
-        "campfire" or "campfire_stone" => BuildingType.Campfire,
+        "campfire" or "campfire_stone" or "campfire_pot_hook" => BuildingType.Campfire,
         "shelter"                      => BuildingType.Shelter,
+        "shelter_improved"             => BuildingType.ShelterImproved,
+        "shelter_mud"                  => BuildingType.ShelterMud,
         "hut"                          => BuildingType.Hut,
         "wooden_shelter"               => BuildingType.WoodenHut,
         "storehouse"                   => BuildingType.Storehouse,

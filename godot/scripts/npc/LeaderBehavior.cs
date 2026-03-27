@@ -82,7 +82,8 @@ public partial class LeaderBehavior : Node
 
         // ── Rule 2: Shelters — Zone 1 ─────────────────────────────────────
         int sheltersNeeded = Mathf.Min(members / 3, 5);
-        int sheltersHave   = existingOf(BuildingType.Shelter) + existingOf(BuildingType.Hut)
+        int sheltersHave   = existingOf(BuildingType.Shelter) + existingOf(BuildingType.ShelterImproved)
+                           + existingOf(BuildingType.ShelterMud) + existingOf(BuildingType.Hut)
                            + existingOf(BuildingType.WoodenHut)
                            + pendingOf("shelter") + pendingOf("shelter_improved")
                            + pendingOf("shelter_mud") + pendingOf("hut") + pendingOf("wooden_shelter");

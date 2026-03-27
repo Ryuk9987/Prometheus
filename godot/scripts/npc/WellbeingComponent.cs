@@ -93,7 +93,9 @@ public partial class WellbeingComponent : Node
             float shelterBonus = nearBuilding.Type switch {
                 BuildingType.Hut       => 0.35f,
                 BuildingType.WoodenHut => 0.4f,
-                BuildingType.Shelter   => 0.2f,
+                BuildingType.Shelter         => 0.15f,
+                BuildingType.ShelterImproved => 0.22f,
+                BuildingType.ShelterMud      => 0.30f,
                 _ => 0.1f
             };
             temp = Mathf.Min(1f, temp + shelterBonus);
@@ -154,7 +156,9 @@ public partial class WellbeingComponent : Node
             comfort += bestBuilding.Type switch {
                 BuildingType.Hut       => 0.55f,
                 BuildingType.WoodenHut => 0.65f,
-                BuildingType.Shelter   => 0.3f,
+                BuildingType.Shelter         => 0.20f,
+                BuildingType.ShelterImproved => 0.30f,
+                BuildingType.ShelterMud      => 0.40f,
                 BuildingType.Storehouse => 0.1f,
                 _ => 0.05f
             };

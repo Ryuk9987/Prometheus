@@ -77,7 +77,7 @@ public partial class DailyRoutineBehavior : Node
             _lastPhase = phase;
         }
 
-        // ── SLEEP: move to shelter/fire and stay put ──────────────────
+        // ── SLEEP: move to shelter/fire and stay put — blocks EVERYTHING ─
         if (phase == DailyPhase.Sleep)
         {
             if (!_sleepPositionSet)
@@ -92,28 +92,33 @@ public partial class DailyRoutineBehavior : Node
         }
         _sleepPositionSet = false;
 
-        // ── MORNING: wake up, tend fire, eat — stay near camp ────────
+        // ── BUILDER / LEADER: always allowed to work, even during rest ─
+        // They finish what they started and don't idle at fire during breaks
+        if (_owner.SocialRole is SocialRole.Builder or SocialRole.Leader)
+            return false;
+
+        // ── MORNING: wake up, tend fire, eat — stay near camp ─────────
         if (phase == DailyPhase.Morning)
         {
             StayNearCamp(delta);
             return true;
         }
 
-        // ── MIDDAY REST: eat + socialize near fire ────────────────────
+        // ── MIDDAY REST: eat + socialize near fire ─────────────────────
         if (phase == DailyPhase.MiddayRest)
         {
             StayNearCamp(delta);
             return true;
         }
 
-        // ── EVENING: socialize, teach, sit around fire ────────────────
+        // ── EVENING: socialize, teach, sit around fire ─────────────────
         if (phase == DailyPhase.Evening)
         {
             StayNearCamp(delta);
             return true;
         }
 
-        // ── DUSK: wind down near fire/shelter ─────────────────────────
+        // ── DUSK: wind down near fire/shelter ──────────────────────────
         if (phase == DailyPhase.Dusk)
         {
             StayNearCamp(delta);

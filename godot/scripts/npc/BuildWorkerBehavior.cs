@@ -20,6 +20,11 @@ public partial class BuildWorkerBehavior : Node
 
     public bool Tick(double delta)
     {
+        // Only builders, leaders and unassigned NPCs construct buildings
+        var role = _owner.SocialRole;
+        if (role != SocialRole.Builder && role != SocialRole.Leader && role != SocialRole.Unassigned)
+            return false;
+
         // Clear completed/invalid target
         if (_target != null && (_target.Status == BuildOrderStatus.Done || !IsInstanceValid(_target)))
             _target = null;

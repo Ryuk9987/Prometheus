@@ -93,10 +93,18 @@ public partial class TribeSociety : Node
         count = members.Count;
         if (count == 0) return;
 
-        // Assign leader
+        // Assign leader — always use TribeManager's elected Leader (single source of truth)
+        // TribeManager elects by knowledge + belief; we just sync the SocialRole here.
         int idx = 0;
-        AssignBest(ranked, ref idx, SocialRole.Leader, needLeader,
-            n => n.Belief.Belief * 0.4f + n.Personality.Empathy * 0.4f + n.Knowledge.Knowledge.Count * 0.02f);
+        if (tribe.Leader != null && tribe.Members.Contains(tribe.Leader))
+        {
+            tribe.Leader.SocialRole = SocialRole.Leader;
+        }
+        else
+        {
+            AssignBest(ranked, ref idx, SocialRole.Leader, needLeader,
+                n => n.Belief.Belief * 0.4f + n.Personality.Empathy * 0.4f + n.Knowledge.Knowledge.Count * 0.02f);
+        }
 
         // Hunters: high courage, hunting knowledge
         AssignBest(ranked, ref idx, SocialRole.Hunter, needHunters,

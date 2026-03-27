@@ -158,7 +158,8 @@ public partial class NpcRoster : CanvasLayer
     private Control BuildRow(NpcEntity npc, PlayerRelation rel = PlayerRelation.Unbeliever)
     {
         var tribe    = TribeManager.Instance?.GetTribe(npc);
-        bool isLeader   = tribe?.Leader == npc;
+        // Single source of truth: SocialRole.Leader (synced from TribeManager in TribeSociety)
+        bool isLeader   = npc.SocialRole == SocialRole.Leader;
 
         var row = new PanelContainer();
         var s   = new StyleBoxFlat();
@@ -209,7 +210,6 @@ public partial class NpcRoster : CanvasLayer
         hbox.AddChild(infoCol);
 
         var nameRow = new HBoxContainer();
-        bool isSocialLeader = npc.SocialRole == SocialRole.Leader;
         var nameLbl = new Label();
         nameLbl.Text = npc.NpcName + (isLeader ? " 👑" : "");
         nameLbl.AddThemeFontSizeOverride("font_size", 13);

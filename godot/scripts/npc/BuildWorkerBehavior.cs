@@ -44,8 +44,10 @@ public partial class BuildWorkerBehavior : Node
             return true;
         }
 
-        // Work!
-        float skill = 0.3f + _owner.Knowledge.Knowledge[_target.KnowledgeId].Depth * 0.5f;
+        // Work! (use TryGetValue — NPC may know a prerequisite but not the exact knowledge id)
+        float knowledgeDepth = _owner.Knowledge.Knowledge.TryGetValue(_target.KnowledgeId, out var kItem)
+            ? kItem.Depth : 0.1f;
+        float skill = 0.3f + knowledgeDepth * 0.5f;
         _target.Work(skill * (float)delta);
         return true;
     }
